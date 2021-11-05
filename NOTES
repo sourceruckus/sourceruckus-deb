@@ -1,0 +1,117 @@
+-*- org -*-
+
+* source ruckus virtualized network infrastructure
+System of Systems built using Source Ruckus VMM
+
+Baselined, redundant, highly available network services
+
+** routing
+*** NAT, Inter-VLAN routing, and Firewall
+Iptables
+*** WAN interface monitoring and auto-failover
+*** Traffic Shaping and bandwidth limiting
+*** VPN
+WireGuard
+
+** DNS/DHCP
+Use DHCP for client systems knowing that they're IPs get nicely added to DNS,
+so you don't have to maintain IP spreadsheets.
+
+** WiFi network management
+UniFi management for WAP management and WiFi network controls
+
+** WWW
+Apache web server for local web hosting
+
+** NAS & File Sharing
+NFS, SMB file sharing
+
+** Active Directory for centralized authentication
+Samba Active Directory Domain Controller
+
+** Redundancy
+Each VM uses one or more DRBD9 resource for its backing storage, ensuring that
+all data is written simultaneously to all host systems.
+
+Data shares for file server VM is also a DRBD9 resource, 
+
+** High Availabilty
+Any VM (whose guest OS is Xen-aware) can be live-migrated from any host to any
+of the other hosts on-demand (e.g., to do maintaince on a physical server).
+
+Additionally, RuckMan monitors health of all guest VMs, and will restart them
+on an available host system in case of a failure (e.g., guest crash, host
+crash).
+
+** Local Backups
+VM root filesystem DRBD resources are layered on top of ZFS Zvols, so they can
+be backed up transparently by the host systems via ZFS Auto Snapshots w/out the
+guest OS even knowning.
+
+VM storage DRBD resources (e.g., for file server) use raw disk drives, which
+are then configured as a ZFS Zpool for guest OS to handle backups via ZFS Auto
+Snapshot.  This serves a couple benefits: 1) it's easier to access the backups
+from the file server VM, and 2) in case of DRBD resync (e.g., due to
+split-brain) you won't lose all your backups (i.e., your zfs snapshots are of
+the old invalid block device, which you CAN keep, but you'll need TWICE as much
+storage EVERY time it happens, so you won't want to).
+
+** Remote Backups
+Remote backups can be handled by a Source Ruckus Workstation in a different
+geographic location over the internet using ZFS Send/Receive
+
+
+** Source Ruckus Embedded Server (ES)
+drbd9 (custom compile?  upstream ppa?)
+OpenZFS (custom compile?)
+ruckusrd (custom .deb)
+pingenator (custom .deb)
+ruckman (custom .deb)
+linux-mdl (+wg,+drbd9,+zfs, managed via ruckusrd installers)
+awesome-powers (git clone)
+TeamViewer (wget .deb)
+sanoid (or just the piece we want, custom .deb)
+
+samba (full shpeel for ad-dc)
+ushare (or whatever i'm currently using)
+
+dnsmasq
+netfilter-persistent
+
+no snapd, damnit
+
+will probably have to break things by uninstalling grub bits and bobs
+
+** Source Ruckus Ebedded Web Server (ES-web)
+Probably want to pull web-related stuff into a sperate vm, because it can get
+fussy (and huge)
+
+apache2
+unifi (wget .deb?)
+
+** Source Ruckus Ebedded File Server (ES-file)
+Same thing here... maybe?
+
+** Source Ruckus Virtual Machine Monitor (VMM)
+A Type-1 Hypervisor system using Xen, DRBD9, ZFS, and RuckMan
+
+Xen (custom compile)
+
+Should eventually create some better management scripts wrapping around all
+those things.
+
+** Source Ruckus Workstation
+wine (upstream ppa)
+openshot (upstream appimage)
+vlc
+ardour (payed download? is that legit?)
+audacity
+dvd palyer stuff (maybe?)
+qgis (upstream ppa)
+steam (upstream ppa?)
+google chrome (wget .deb)
+google earth (wget .deb)
+zoom (wget .deb)
+teams (wget .deb)
+
+snapd?  flatpak?

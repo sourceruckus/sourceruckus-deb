@@ -1,0 +1,7 @@
+SUBDIRS =
+#SUBDIRS += src
+
+top_docs = README COPYING AUTHORS TODO NOTES
+
+EXTRA_DIST =
+EXTRA_DIST += $(top_docs)
