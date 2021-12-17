@@ -1,6 +1,7 @@
 # -*- sh -*-
 *~
 /FOO
+/build-es
 
 # autotools files
 Makefile

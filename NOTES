@@ -65,8 +65,8 @@ geographic location over the internet using ZFS Send/Receive
 
 
 ** Source Ruckus Embedded Server (ES)
-drbd9 (custom compile?  upstream ppa?)
-OpenZFS (custom compile?)
+drbd9 (upstream ppa?)
+OpenZFS (custom compile? or just use ubuntu pkgs for userspace?)
 ruckusrd (custom .deb)
 pingenator (custom .deb)
 ruckman (custom .deb)
