@@ -87,9 +87,22 @@ will probably have to break things by uninstalling grub bits and bobs
 
 ** Source Ruckus Embedded Server w/ Wine (ES-wine)
 Split this out of our base ES image to keep wine updates from rippling through
-the whole system?
+the whole system?  Also, this might cause a ton of multilib package
+installation for 32bit support.
 
 wine (upstream ppa)
+
+FIXME: Should these ES variants be layers that VMM (and then workstation) are
+       built on top of?  If so, what should the layering be?  I think we want
+       wine in the eventual Workstation image, so that one should get layered.
+
+       I guess having apache, unifi, influx, grafana including in upper layers
+       but disabled won't cause too much update churn... but they're really not
+       needed.
+
+       Might just layer ES-wine on top of ES-web and keep the fully layered
+       aproach going w/out any oddball exceptions
+
 
 ** Source Ruckus Embedded Web Server (ES-web)
 Probably want to pull web-related stuff into a sperate vm, because it can get

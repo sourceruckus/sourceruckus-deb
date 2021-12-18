@@ -1,1 +1,14 @@
 Source Ruckus .deb Embedded System of Systems Builder
+
+To build this on Debian/Ubuntu systems, make sure debootstrap is installed.
+
+% apt install debootstrap build-essential
+
+Then configure the build system
+
+% ./autogen.sh
+% ./configure
+
+Then build something (see Makefile.am for potential targets)
+
+% make es.sqsh
