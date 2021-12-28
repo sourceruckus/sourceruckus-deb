@@ -33,7 +33,9 @@ build-es/.RUCKUS-DEBOOTSTRAP:
 #deb http://security.ubuntu.com/ubuntu/ focal-security main restricted universe multiverse
 #
 # - do stage 2 apt install
-#   - ubuntu-server
+#   - hold a couple packages
+#     - apt-mark hold snapd wireguard-dkms
+#   - ubuntu-server (this does pull in snapd)
 #   - network-manager
 #   - iptables-persistent (yes for saving rules)
 #   - tshark (yes for non-root capture)
@@ -53,7 +55,7 @@ build-es/.RUCKUS-DEBOOTSTRAP:
 #   - aspell
 #   - autofs
 #   - ftp ncftp
-#   - wireguard (--no-install-recommends to avoid grub junk - or apt-mark hold wireguard-dkms)
+#   - wireguard (--no-install-recommends to avoid grub junk - or apt-mark hold wireguard-dkms wireguard-modules)
 #   - hdparm
 #   - logwatch
 #   - lsof
@@ -70,8 +72,11 @@ build-es/.RUCKUS-DEBOOTSTRAP:
 #     - autoconf automake autopoint m4 libtool gettext pkg-config bison flex (14M)
 #     - cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc (125M)
 #     - yajl-tools
+#   - mosh
 #
 # LEFT OFF HERE: 1.9G
+#
+# FIXME: bah, i've already got snapd?  where'd it come from?
 #
 # - get 3rd party stuff
 #   - telegraf
@@ -100,7 +105,7 @@ build-es/.RUCKUS-ES: build-es/.RUCKUS-DEBOOTSTRAP
 	mount proc -t proc $(dir $@)/proc
 	mount sysfs -t sysfs $(dir $@)/sys
 	mount --bind /dev $(dir $@)/dev
-	echo chroot $(dir $@) /usr/bin/env -i HOME=/root TERM=$TERM /bin/bash --login
+	echo chroot $(dir $@) /usr/bin/env -i HOME=/root TERM=\$TERM PATH=\$PATH/bin/bash --login
 	touch $@
 
 # FIXME: temporary PHONY for testing deps... remove when done
