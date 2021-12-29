@@ -19,7 +19,8 @@ build-%/sys/block:
 	mount sysfs -t sysfs $(dir $@)
 
 build-%/dev/block:
-	mount --bind /dev $(dir $@)
+	mount --rbind /dev $(dir $@)
+	mount --make-rslave $(dir $@)
 
 
 # ES (base)
@@ -32,9 +33,6 @@ build-%/dev/block:
 #        just the difference between including the samba package or
 #        not (~45M).  That would also make our base image unable to export
 #        files via smbd, but that might be fine.
-#
-# FIXME: had to "export PATH" to get certain things happy
-#        post-chroot... not sure (e.g., emacs dired, dpkg-reconfigure)
 #
 # - get chrooted
 # - setup apt sources
@@ -94,7 +92,7 @@ build-%/dev/block:
 #   - zip unzip unrar
 #   - xattr
 #   - zstd
-#   - krb5-user (specified default realm, server, and pw server, use dpkg-reconfigure later?)
+#   - krb5-user (specified default realm, server (krb5), and pw server (krb5pw), use dpkg-reconfigure later?)
 #   - libpam-krb5
 #   - mosh
 #   - wget
@@ -136,8 +134,8 @@ ES_PKGS += tpm-udev udisks2 unattended-upgrades usb.ids usbutils vim vim-runtime
 # additional things we want
 ES_PKGS += iptables crda
 ES_PKGS += network-manager
-ES_PKGS += iptables-persistent #(yes for saving rules)
-ES_PKGS += tshark #(yes for non-root capture, dpkg-reconfigure later?)
+ES_PKGS += iptables-persistent #(yes for saving rules, dpkg-reconfigure later?)
+ES_PKGS += tshark #(yes for non-root capture, dpkg-reconfigure wireshark-common later?)
 ES_PKGS += openssh-server ntp sntp ncurses-term
 ES_PKGS += dnsmasq
 ES_PKGS += cifs-utils smbclient samba attr samba-dsdb-modules samba-vfs-modules
@@ -164,7 +162,7 @@ ES_PKGS += tree
 ES_PKGS += zip unzip unrar
 ES_PKGS += xattr
 ES_PKGS += zstd
-ES_PKGS += krb5-user #(specified default realm, server, and pw server, use dpkg-reconfigure later?)
+ES_PKGS += krb5-user #(specified default realm, server (krb5), and pw server (krb5pw), use dpkg-reconfigure later?)
 ES_PKGS += libpam-krb5
 ES_PKGS += mosh
 ES_PKGS += wget
@@ -175,6 +173,9 @@ ES_PKGS += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsl
 ES_PKGS += yajl-tools
 
 # FIXME: this is still interactive... i thought -y fixed that...?
+#
+#        looks like i need to create a config.dat to feed into apt via
+#        DEBIAN_FRONTEND=noninteractive DEBCONF_DB_FALLBACK=Pipe
 #
 build-es/.RUCKUS-ES-APT: build-es/.RUCKUS-ES-APT-PREP
 	$(MAKE) build-es-mount-vfs
@@ -223,7 +224,7 @@ build-es/.RUCKUS-ES-FINAL: build-es/.RUCKUS-ES-COMPILE
 	touch $@
 
 es.sqsh: build-es/.RUCKUS-ES-FINAL
-	umount $(dir $^)/{proc,sys,dev}
+	umount -R $(dir $^)/{proc,sys,dev}
 	mksquashfs $(dir $^) $@ -comp lz4 -Xhc -noappend -wildcards -e .RUCKUS*
 
 
@@ -304,12 +305,14 @@ es.sqsh: build-es/.RUCKUS-ES-FINAL
 
 
 
-# Things to reconfigure upon 1st boot
+# Things to reconfigure before 1st boot, via chroot
+#
+# - hostname, mailname
+# - dbus-uuidgen > /etc/machine-id
 #
 # - dpkg-reconfigure
-#   - postfix
+#   - postfix (get the defaults seeded, run noninteractively to get fqdn right)
 #   - tzdata
 #   - locales
-#   - tshark? wireshark?  make sure group exists and setuid set
-#   - netfilter-persistent? make sure empty rules files exist
-#   - krb5-user or libpam-krb5?
+#   - krb5-user? (or remove krb5.conf until user manually does this or installs the file?)
+#
