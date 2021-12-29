@@ -20,3 +20,11 @@ Makefile.in
 /ltmain.sh
 /missing
 /test-driver
+
+# built files
+es.sqsh
+es-file.sqsh
+es-web.sqsh
+es-wine.sqsh
+vmm.sqsh
+workstation.sqsh
