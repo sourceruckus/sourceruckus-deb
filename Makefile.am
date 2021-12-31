@@ -18,6 +18,9 @@ build-%/proc/self:
 build-%/sys/block:
 	mount sysfs -t sysfs $(dir $@)
 
+# FIXME: still have to sometimes kill gpg-agent and dirmngr to umount
+#        dev... i think that was just becuase i was doing gpg stuff
+#        while testing in the chrooted environment.
 build-%/dev/block:
 	mount --rbind /dev $(dir $@)
 	mount --make-rslave $(dir $@)
@@ -166,6 +169,7 @@ ES_PKGS += krb5-user #(specified default realm, server (krb5), and pw server (kr
 ES_PKGS += libpam-krb5
 ES_PKGS += mosh
 ES_PKGS += wget
+ES_PKGS += man-db wamerican whois
 # compilation toolchain (~300M)
 ES_PKGS += build-essential manpages-dev # (190M)
 ES_PKGS += autoconf automake autopoint m4 libtool gettext pkg-config bison flex # (13M)
@@ -177,15 +181,48 @@ ES_PKGS += yajl-tools
 #        looks like i need to create a config.dat to feed into apt via
 #        DEBIAN_FRONTEND=noninteractive DEBCONF_DB_FALLBACK=Pipe
 #
+#        perhaps run through interactively once and then copy the
+#        resulting /var/cache/debconf/config.dat.  for whatever
+#        reason, it sounds like that's a bad idea and I really should
+#        provide a "backup" db.
+#
+# FIXME: noninteractive is working, but DEBCONF_DB_FALLBACK=Pipe
+#        doesn't quite look like my overrides fron config.dat are
+#        propogating... it's still taking defaults.
+#
+CHROOT_ES=chroot build-es /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH
+APT_INSTALL=DEBIAN_FRONTEND=noninteractive DEBCONF_DB_FALLBACK=Pipe apt install -y --no-install-recommends
 build-es/.RUCKUS-ES-APT: build-es/.RUCKUS-ES-APT-PREP
 	$(MAKE) build-es-mount-vfs
-	chroot $(dir $@) /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH apt install -y --no-install-recommends $(ES_PKGS)
+	cat debconf-config.dat | $(CHROOT_ES) $(APT_INSTALL) $(ES_PKGS)
 	touch $@
 
-# - get 3rd party stuff
-#   - telegraf
+build-es/etc/apt/sources.list.d/sourceruckus.list: build-es/.RUCKUS-ES-APT
+	$(MAKE) build-es-mount-vfs
+	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT_ES) apt-key add -
+	echo "deb https://sourceruckus.github.io/ppa focal main" > $@
+
+build-es/etc/apt/sources.list.d/influxdb.list: build-es/.RUCKUS-ES-APT
+	$(MAKE) build-es-mount-vfs
+	wget -qO- https://repos.influxdata.com/influxdb.key | $(CHROOT_ES) apt-key add -
+	echo "deb https://repos.influxdata.com/ubuntu focal stable" > $@
+
+build-es/etc/apt/sources.list.d/linbit-drbd9.list: build-es/.RUCKUS-ES-APT
+	$(MAKE) build-es-mount-vfs
+	gpg --keyserver keyserver.ubuntu.com --recv CC1B5A793C04BB3905AD837734893610CEAA9512
+	gpg --armor --export linbit | $(CHROOT_ES) apt-key add -
+	echo "deb http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu focal main" > $@
+
+ES_PKGS_3RD =
+ES_PKGS_3RD += telegraf #(135M! didn't realize it was that large)
+ES_PKGS_3RD += drbd-utils
+build-es/.RUCKUS-ES-3RDPARTY: build-es/etc/apt/sources.list.d/sourceruckus.list
+build-es/.RUCKUS-ES-3RDPARTY: build-es/etc/apt/sources.list.d/influxdb.list
+build-es/.RUCKUS-ES-3RDPARTY: build-es/etc/apt/sources.list.d/linbit-drbd9.list
 build-es/.RUCKUS-ES-3RDPARTY: build-es/.RUCKUS-ES-APT
 	$(MAKE) build-es-mount-vfs
+	$(CHROOT_ES) apt update
+	cat debconf-config.dat | $(CHROOT_ES) $(APT_INSTALL) $(ES_PKGS_3RD)
 	touch $@
 
 # - get ready to compile stuff (if not available via ppa)
@@ -213,14 +250,14 @@ build-es/.RUCKUS-ES-COMPILE: build-es/.RUCKUS-ES-3RDPARTY
 	$(MAKE) build-es-mount-vfs
 	touch $@
 
-#build-es/.RUCKUS-ES: build-es/.RUCKUS-ES-COMPILE
-#	touch $@
 
-
-# apt clean
+# FIXME: add some systemctl enable/disable calls in here, and maybe
+#        systemctl set-default multi-user.target
 #
 build-es/.RUCKUS-ES-FINAL: build-es/.RUCKUS-ES-COMPILE
 	$(MAKE) build-es-mount-vfs
+	$(CHROOT_ES) apt clean
+	$(CHROOT_ES) useradd -c "Local Administrator" -m -s /usr/bin/zsh localadmin
 	touch $@
 
 es.sqsh: build-es/.RUCKUS-ES-FINAL
@@ -273,7 +310,8 @@ es.sqsh: build-es/.RUCKUS-ES-FINAL
 #   - drbd9 (should I wait until here and use upstream ppa?)
 # - compile/apt
 #   - ruckusrd (if we haven't already)
-
+VMM_PKGS =
+VMM_PKGS += groff ghostscript imagemagick libpaper1 netpbm psutils
 
 # Workstation
 #
@@ -305,10 +343,12 @@ es.sqsh: build-es/.RUCKUS-ES-FINAL
 
 
 
-# Things to reconfigure before 1st boot, via chroot
+# Things for installer to do, via chroot
 #
+# - prompt for top layer
 # - hostname, mailname
 # - dbus-uuidgen > /etc/machine-id
+# - root pw?  localadmin pw?
 #
 # - dpkg-reconfigure
 #   - postfix (get the defaults seeded, run noninteractively to get fqdn right)
@@ -316,3 +356,6 @@ es.sqsh: build-es/.RUCKUS-ES-FINAL
 #   - locales
 #   - krb5-user? (or remove krb5.conf until user manually does this or installs the file?)
 #
+# - awesome-powers configenator
+#   - update && pull first?
+#   - use specified hostname if unique with match, or prompt for host/site
