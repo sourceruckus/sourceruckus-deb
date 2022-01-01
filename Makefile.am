@@ -6,6 +6,16 @@ top_docs = README COPYING AUTHORS TODO NOTES
 EXTRA_DIST =
 EXTRA_DIST += $(top_docs)
 
+# FIXME: straighten out dir structure...  we should probably build in
+#        the same dir for each layer (e.g. builddir, merged, sysroot)
+#        so the embedded pathnames in variables are the same for each
+#        image.
+#
+# FIXME: consider using tmpfs for build dir(s).  makes cleaning them
+#        out pretty easy, as you just unmount... but we'd be requiring
+#        a bit more RAM (probably an extra 2G or so to be safe).
+#
+
 
 # stage1 - 340M
 build-es/.RUCKUS-DEBOOTSTRAP:
@@ -113,8 +123,6 @@ build-%/dev/block:
 #
 build-es-mount-vfs: build-es/proc/self build-es/sys/block build-es/dev/block
 
-# FIXME: apt error "Is /dev/pts mounted?"
-#
 build-es/.RUCKUS-ES-APT-PREP: build-es/.RUCKUS-DEBOOTSTRAP
 	$(MAKE) build-es-mount-vfs
 	echo "deb http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse" > build-es/etc/apt/sources.list
@@ -176,24 +184,23 @@ ES_PKGS += autoconf automake autopoint m4 libtool gettext pkg-config bison flex 
 ES_PKGS += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc # (62M)
 ES_PKGS += yajl-tools
 
-# FIXME: this is still interactive... i thought -y fixed that...?
-#
-#        looks like i need to create a config.dat to feed into apt via
-#        DEBIAN_FRONTEND=noninteractive DEBCONF_DB_FALLBACK=Pipe
-#
-#        perhaps run through interactively once and then copy the
-#        resulting /var/cache/debconf/config.dat.  for whatever
-#        reason, it sounds like that's a bad idea and I really should
-#        provide a "backup" db.
-#
-# FIXME: noninteractive is working, but DEBCONF_DB_FALLBACK=Pipe
-#        doesn't quite look like my overrides fron config.dat are
-#        propogating... it's still taking defaults.
+# NOTE: We want apt install to be completely noninteractive with
+#       pre-seeded values for all debconf questions.  My initial idea
+#       was to run through interactively and then just copy the
+#       resulting debconf config.dat into subsequent runs, but reading
+#       online kinda implies that that's the "wrong" thing to do, and
+#       that I should use either DEBCONF_DB_FALLBACK or
+#       DEBCONF_DB_OVERRIDE variables (set to either Pipe or File) to
+#       supply values...  both of those methods were providing strange
+#       errors, though...  so I tried just copying config.dat in
+#       directly as I'd originally planned and it worked fine... so
+#       that's what I'm doing.
 #
 CHROOT_ES=chroot build-es /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH
-APT_INSTALL=DEBIAN_FRONTEND=noninteractive DEBCONF_DB_FALLBACK=Pipe apt install -y --no-install-recommends
+APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
 build-es/.RUCKUS-ES-APT: build-es/.RUCKUS-ES-APT-PREP
 	$(MAKE) build-es-mount-vfs
+	cp debconf-config.dat build-es/var/cache/debconf/config.dat
 	cat debconf-config.dat | $(CHROOT_ES) $(APT_INSTALL) $(ES_PKGS)
 	touch $@
 
