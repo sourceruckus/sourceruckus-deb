@@ -37,6 +37,7 @@ sysroot/dev/block:
 	mount --make-rslave $(dir $@)
 
 
+################################################################################
 # ES (base)
 #
 # This is going to be used for most of our domUs.  Should include
@@ -61,55 +62,55 @@ sysroot/.RUCKUS-ES-APT-PREP: sysroot/.RUCKUS-DEBOOTSTRAP
 	touch $@
 
 # base list (pared down from ubuntu-server)
-ES_PKGS =
-ES_PKGS += alsa-ucm-conf alsa-topology-conf at bc cpio curl dirmngr
-ES_PKGS += dbus-user-session dconf-gsettings-backend dconf-service dmeventd dmidecode dosfstools ethtool finalrd fuse gawk gdisk gettext-base gir1.2-packagekitglib-1.0 git git-man glib-networking glib-networking-common
-ES_PKGS += glib-networking-services gnupg gnupg-l10n gnupg-utils gpg gpg-agent gpg-wks-client gpg-wks-server gpgconf gpgsm groff-base gsettings-desktop-schemas iso-codes krb5-locales
-ES_PKGS += linux-base lshw lvm2 lz4
-ES_PKGS += mdadm ntfs-3g openssh-client packagekit packagekit-tools parted patch pci.ids pciutils perl perl-modules-5.30 pinentry-curses plymouth plymouth-theme-ubuntu-text policykit-1 publicsuffix
-ES_PKGS += software-properties-common sound-theme-freedesktop squashfs-tools thin-provisioning-tools
-ES_PKGS += tpm-udev udisks2 unattended-upgrades usb.ids usbutils vim vim-runtime xauth
+PKGS_ES =
+PKGS_ES += alsa-ucm-conf alsa-topology-conf at bc cpio curl dirmngr
+PKGS_ES += dbus-user-session dconf-gsettings-backend dconf-service dmeventd dmidecode dosfstools ethtool finalrd fuse gawk gdisk gettext-base gir1.2-packagekitglib-1.0 git git-man glib-networking glib-networking-common
+PKGS_ES += glib-networking-services gnupg gnupg-l10n gnupg-utils gpg gpg-agent gpg-wks-client gpg-wks-server gpgconf gpgsm groff-base gsettings-desktop-schemas iso-codes krb5-locales
+PKGS_ES += linux-base lshw lvm2 lz4
+PKGS_ES += mdadm ntfs-3g openssh-client packagekit packagekit-tools parted patch pci.ids pciutils perl perl-modules-5.30 pinentry-curses plymouth plymouth-theme-ubuntu-text policykit-1 publicsuffix
+PKGS_ES += software-properties-common sound-theme-freedesktop squashfs-tools thin-provisioning-tools
+PKGS_ES += tpm-udev udisks2 unattended-upgrades usb.ids usbutils vim vim-runtime xauth
 # additional things we want
-ES_PKGS += iptables crda
-ES_PKGS += network-manager
-ES_PKGS += iptables-persistent #(yes for saving rules, dpkg-reconfigure later?)
-ES_PKGS += tshark #(yes for non-root capture, dpkg-reconfigure wireshark-common later?)
-ES_PKGS += openssh-server ntp sntp ncurses-term
-ES_PKGS += dnsmasq
-ES_PKGS += cifs-utils smbclient samba attr samba-dsdb-modules samba-vfs-modules
-ES_PKGS += keyutils winbind libnss-winbind libpam-winbind
-ES_PKGS += acl
-ES_PKGS += bind9-host bind9-dnsutils net-tools
-ES_PKGS += vlan bridge-utils ifenslave
-ES_PKGS += postfix #(no config, use dpkg-reconfigre to tweak later)
-ES_PKGS += mailutils
-ES_PKGS += zsh gkrellmd lm-sensors fancontrol read-edid i2c-tools
-ES_PKGS += git-email
-ES_PKGS += emacs-nox emacs-common-non-dfsg
-ES_PKGS += aspell aspell-en
-ES_PKGS += autofs nfs-common
-ES_PKGS += ftp ncftp
-ES_PKGS += wireguard-tools #(--no-install-recommends to avoid grub junk - or apt-mark hold wireguard-dkms wireguard-modules)
-ES_PKGS += hdparm
-ES_PKGS += logwatch libdate-manip-perl
-ES_PKGS += lsof
-ES_PKGS += rfkill rsync
-ES_PKGS += info
-ES_PKGS += traceroute
-ES_PKGS += tree
-ES_PKGS += zip unzip unrar
-ES_PKGS += xattr
-ES_PKGS += zstd
-ES_PKGS += krb5-user #(specified default realm, server (krb5), and pw server (krb5pw), use dpkg-reconfigure later?)
-ES_PKGS += libpam-krb5
-ES_PKGS += mosh
-ES_PKGS += wget
-ES_PKGS += man-db wamerican whois
+PKGS_ES += iptables crda
+PKGS_ES += network-manager
+PKGS_ES += iptables-persistent #(yes for saving rules, dpkg-reconfigure later?)
+PKGS_ES += tshark #(yes for non-root capture, dpkg-reconfigure wireshark-common later?)
+PKGS_ES += openssh-server ntp sntp ncurses-term
+PKGS_ES += dnsmasq
+PKGS_ES += cifs-utils smbclient samba attr samba-dsdb-modules samba-vfs-modules
+PKGS_ES += keyutils winbind libnss-winbind libpam-winbind
+PKGS_ES += acl
+PKGS_ES += bind9-host bind9-dnsutils net-tools
+PKGS_ES += vlan bridge-utils ifenslave
+PKGS_ES += postfix #(no config, use dpkg-reconfigre to tweak later)
+PKGS_ES += mailutils
+PKGS_ES += zsh gkrellmd lm-sensors fancontrol read-edid i2c-tools
+PKGS_ES += git-email
+PKGS_ES += emacs-nox emacs-common-non-dfsg
+PKGS_ES += aspell aspell-en
+PKGS_ES += autofs nfs-common
+PKGS_ES += ftp ncftp
+PKGS_ES += wireguard-tools #(--no-install-recommends to avoid grub junk - or apt-mark hold wireguard-dkms wireguard-modules)
+PKGS_ES += hdparm
+PKGS_ES += logwatch libdate-manip-perl
+PKGS_ES += lsof
+PKGS_ES += rfkill rsync
+PKGS_ES += info
+PKGS_ES += traceroute
+PKGS_ES += tree
+PKGS_ES += zip unzip unrar
+PKGS_ES += xattr
+PKGS_ES += zstd
+PKGS_ES += krb5-user #(specified default realm, server (krb5), and pw server (krb5pw), use dpkg-reconfigure later?)
+PKGS_ES += libpam-krb5
+PKGS_ES += mosh
+PKGS_ES += wget
+PKGS_ES += man-db wamerican whois
 # compilation toolchain (~300M)
-ES_PKGS += build-essential manpages-dev # (190M)
-ES_PKGS += autoconf automake autopoint m4 libtool gettext pkg-config bison flex # (13M)
-ES_PKGS += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc # (62M)
-ES_PKGS += yajl-tools
+PKGS_ES += build-essential manpages-dev # (190M)
+PKGS_ES += autoconf automake autopoint m4 libtool gettext pkg-config bison flex # (13M)
+PKGS_ES += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc # (62M)
+PKGS_ES += yajl-tools
 
 # NOTE: We want apt install to be completely noninteractive with
 #       pre-seeded values for all debconf questions.  My initial idea
@@ -127,76 +128,57 @@ APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommend
 sysroot/.RUCKUS-ES-APT: sysroot/.RUCKUS-ES-APT-PREP
 	$(MAKE) sysroot-mount-vfs
 	cp debconf-config.dat sysroot/var/cache/debconf/config.dat
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(ES_PKGS)
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES)
 	touch $@
 
-sysroot/etc/apt/sources.list.d/sourceruckus.list: sysroot/.RUCKUS-ES-APT
-	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) apt-key add -
-	echo "deb https://sourceruckus.github.io/ppa focal main" > $@
-
-sysroot/etc/apt/sources.list.d/influxdb.list: sysroot/.RUCKUS-ES-APT
-	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://repos.influxdata.com/influxdb.key | $(CHROOT) apt-key add -
-	echo "deb https://repos.influxdata.com/ubuntu focal stable" > $@
-
-# NOTE: We do this instead of using add-apt-repository to make things
-#       a bit more consistent in here and to avoid multiple apt update
-#       calls.
-sysroot/etc/apt/sources.list.d/linbit-drbd9.list: sysroot/.RUCKUS-ES-APT
-	$(MAKE) sysroot-mount-vfs
-	$(CHROOT) gpgconf --launch gpg-agent
-	$(CHROOT) gpg --ignore-time-conflict --no-options --no-default-keyring \
-	    --secret-keyring /etc/apt/secring.gpg \
-	    --trustdb-name /etc/apt/trustdb.gpg \
-	    --keyring /etc/apt/trusted.gpg \
-	    --keyserver keyserver.ubuntu.com \
-	    --recv CC1B5A793C04BB3905AD837734893610CEAA9512
-	$(CHROOT) gpgconf --kill all
-	echo "deb http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu focal main" > $@
-
-ES_PKGS_3RD =
-ES_PKGS_3RD += telegraf #(135M! didn't realize it was that large)
-ES_PKGS_3RD += drbd-utils
-sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/sourceruckus.list
-sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/influxdb.list
-sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
-sysroot/.RUCKUS-ES-3RDPARTY: sysroot/.RUCKUS-ES-APT
-	$(MAKE) sysroot-mount-vfs
-	$(CHROOT) apt update
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(ES_PKGS_3RD)
-	touch $@
-
-# - get ready to compile stuff (if not available via ppa)
-#   - openzfs
-#   - ruckusrd
-#   - pingenator
-#   - awesome-powers (just clone this in /scrap)
+# NOTE: Definition of "3rd Party" in here is "upstream != Ubuntu".
+#       That means our own Source Ruckus PPA is considered "3rd
+#       Party".
+#
+# NOTE: Regarding the chicken-and-the-egg of the Source Ruckus PPA
+#       while preping a distro-upgrade...  The easiest thing to do is
+#       manually take a detour and build required packages by hand
+#       instead of somehow detecting that need and automagically doing
+#       it via the build system.  I'm gonna have to re-investigate
+#       required packages and stuff by hand, there's no point in the
+#       added complexity required to "automagically" build things
+#       instead of installing.  So, after a 'make
+#       sysroot/.RUCKUS-ES-3RDPARTY' (which should fail because
+#       missing packages), manually chroot into the resulting system,
+#       build packages and upload them to our PPA.
+#
+# FIXME: should I wait until ES-file and VMM for drbd-utils?  or stick
+#        it in here?  same with openzfs.
+#
+# FIXME: still have to figure these bits out...
+#
+# - awesome-powers (just clone this in /scrap)
 # - additional apt packages (that would have installed ubuntu deps)
 #   - zfs-auto-snapshot (or make it an awesome-powers submodule?)
 #   - sanoid (or make it an awesome-powers submodule?)
 #
-# FIXME: should I be compiling these things in here, or compiling them
-#        somewhere else and installing them via another ppa?
-#
-#        given that I don't *have* them compiled yet, and I'm
-#        bootstrapping a new version of Ubuntu, so I don't even have a
-#        build environment prepped yet... i guess we have to build
-#        them in here.
-#
-#        but maybe for subsequent builds, we could check availability
-#        via apt?  wget debs from somewhere?  keep debs in this source
-#        tree and use if found?
-#
-sysroot/.RUCKUS-ES-COMPILE: sysroot/.RUCKUS-ES-3RDPARTY
+PKGS_ES_3RDPARTY =
+PKGS_ES_3RDPARTY += telegraf #(135M! didn't realize it was that large)
+PKGS_ES_3RDPARTY += ruckusrd
+PKGS_ES_3RDPARTY += pingenator
+PKGS_ES_3RDPARTY += drbd-utils
+PKGS_ES_3RDPARTY += openzfs # FIXME: get the pkg names right
+sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/sourceruckus.list
+sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/influxdb.list
+sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/grafana.list
+sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
+sysroot/.RUCKUS-ES-3RDPARTY: sysroot/.RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
+	$(CHROOT) apt update
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES_3RDPARTY)
 	touch $@
-
 
 # FIXME: add some systemctl enable/disable calls in here, and maybe
 #        systemctl set-default multi-user.target
 #
-sysroot/.RUCKUS-ES-FINAL: sysroot/.RUCKUS-ES-COMPILE
+# FIXME: clone awesome-powers and prep it's submodules in here?
+#
+sysroot/.RUCKUS-ES-FINAL: sysroot/.RUCKUS-ES-3RDPARTY
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) apt clean
 	$(CHROOT) useradd -c "Local Administrator" -m -s /usr/bin/zsh localadmin
@@ -207,6 +189,7 @@ es.sqsh: sysroot/.RUCKUS-ES-FINAL
 	mksquashfs $(dir $^) $@ -comp lz4 -Xhc -noappend -wildcards -e .RUCKUS*
 
 
+################################################################################
 # ES-file
 #
 # Really basic file-server... we use ES-wine at CAH so we can run
@@ -215,29 +198,57 @@ es.sqsh: sysroot/.RUCKUS-ES-FINAL
 # FIXME: Is there really anything special we need for a file server
 #        that we couldn't just stick in the base ES image?  If so,
 #        build an es-file.sqsh between es.sqsh and es-web.sqsh
+#
+# FIXME: My latest thought on this, is to ditch ES-wine and roll the
+#        wine additions in here along w/ orthanc and whatever else I
+#        need for the file-server at CAH.
+#
+# - enable 32bit libs across the board
+# - apt
+#   - gcc-multilib (?) (85M)
+#   - wine (via upstream ppa)
+#
+PKGS_ESFILE =
+PKGS_ESFILE += orthanc
+PKGS_ESFILE += orthanc-dicomweb
+PKGS_ESFILE += orthanc-doc
+PKGS_ESFILE += orthanc-imagej
+#PKGS_ESFILE += orthanc-mysql
+#PKGS_ESFILE += orthanc-postgresql
+PKGS_ESFILE += orthanc-webviewer
+PKGS_ESFILE += orthanc-wsi
 
 
+################################################################################
 # ES-web
+#
+# Based ES, not ES-file, and adds web-server stuff.
 #
 # - via apt
 #   - apache2
 #   - influxdb (upstream ppa)
 #   - grafana (upstream ppa)
 #   - unifi (wget the .deb?)
-
-
-# ES-wine
 #
-# - enable 32bit libs across the board
-# - apt
-#   - gcc-multilib (?) (85M)
-#   - wine (via upstream ppa)
-# 
-#es-wine.sqsh: builde-es-wine/.DONE
-#	mksquashfs ...
+PKGS_ESWEB =
+PKGS_ESWEB += apache2 ssl-cert
+PKGS_ESWEB += influxdb # upstream ppa added already
+PKGS_ESWEB += grafana # upstream ppa added
+
+# FIXME: Considered adding the unifi deb to my ppa... but I'm pretty
+#        sure it adds it's own ppa as upstream for updates, so that's
+#        probably a bad idea.  Instead, we'll have a list of local
+#        .debs to install (and rules to download them via wget).
+#
+PKGS_ESWEB_LOCAL =
+PKGS_ESWEB_LOCAL += unifi
 
 
+################################################################################
 # VMM (Xen Dom0)
+#
+# Based on ES, not ES-file or ES-web, adds things needed for our VMM
+# setup.
 #
 # - compile things
 #   - xen
@@ -252,10 +263,19 @@ es.sqsh: sysroot/.RUCKUS-ES-FINAL
 #   - drbd9 (should I wait until here and use upstream ppa?)
 # - compile/apt
 #   - ruckusrd (if we haven't already)
-VMM_PKGS =
-VMM_PKGS += groff ghostscript imagemagick libpaper1 netpbm psutils
+PKGS_VMM =
+PKGS_VMM += groff ghostscript imagemagick libpaper1 netpbm psutils
 
-# Workstation
+
+################################################################################
+## Workstation
+#
+# Based off VMM (which exludes ES-file and ES-web additions), adds
+# everything else we want in an awesome workstation of doom (including
+# the kitchen sink).
+#
+# NOTE: Similar to ES-web, we want a full multilib setup with upstream
+#       Wine for the Workstation.
 #
 # - via apt
 #   - ubuntu-desktop (maybe exclude a few pkgs?)
@@ -266,7 +286,7 @@ VMM_PKGS += groff ghostscript imagemagick libpaper1 netpbm psutils
 #   - audacity audacious rhythmbox sox ogg123 vorbis-tools etc
 #   - jackd
 #   - gimp inkscape
-#   - vlc (upstream ppa?)
+#   - vlc (via upstream snap?)
 #   - dvd player stuff (maybe?)
 #   - special font packages (maybe?)
 #   - rdesktop (and more?)
@@ -282,6 +302,10 @@ VMM_PKGS += groff ghostscript imagemagick libpaper1 netpbm psutils
 #   - thunderbird
 #   - stupid autoupdate gui notification thing
 #   - snapd?
+#
+sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/wine.list
+sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/qgis.list
+sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
 
 
 

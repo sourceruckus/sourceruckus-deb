@@ -3,7 +3,8 @@
 * source ruckus virtualized network infrastructure
 System of Systems built using Source Ruckus VMM
 
-Baselined, redundant, highly available network services
+Baselined, redundant, highly available network services hosted locally via
+what's essentially an on-premise cloud.
 
 ** routing
 *** NAT, Inter-VLAN routing, and Firewall
