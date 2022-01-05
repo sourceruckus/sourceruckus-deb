@@ -21,6 +21,9 @@ EXTRA_DIST += $(top_docs)
 CHROOT=chroot sysroot /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH
 
 
+all: es.sqsh es-file.sqsh es-web.sqsh vmm.sqsh workstation.sqsh
+
+
 # stage1 - 340M
 sysroot/.RUCKUS-DEBOOTSTRAP:
 	debootstrap --arch=amd64 focal $(dir $@) http://archive.ubuntu.com/ubuntu/
@@ -178,10 +181,21 @@ sysroot/.RUCKUS-ES-3RDPARTY: sysroot/.RUCKUS-ES-APT
 #
 # FIXME: clone awesome-powers and prep it's submodules in here?
 #
+# FIXME: i need to either add localadmin here or set root w/out a pw
+#        and add users later.  if we add localadmin, we want /etc/skel
+#        and /etc/login.defs set appropriately first... and those are
+#        in awesome-powers...  so do we wait for useradd until
+#        install-time?
+#
 sysroot/.RUCKUS-ES-FINAL: sysroot/.RUCKUS-ES-3RDPARTY
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) apt clean
-	$(CHROOT) useradd -c "Local Administrator" -m -s /usr/bin/zsh localadmin
+	$(CHROOT) sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' /etc/login.defs
+	$(CHROOT) useradd -c "Local Administrator" -m -s /usr/bin/zsh -G adm,sudo localadmin
+	$(CHROOT) systemctl set-default multi-user.target
+	$(CHROOT) echo "rootfs / auto defaults 0 0" > /etc/fstab
+	$(CHROOT) touch /etc/NetworkManager/conf.d/10-globally-managed-devices.conf
+	$(CHROOT) systemctl disable dnsmasq
 	touch $@
 
 es.sqsh: sysroot/.RUCKUS-ES-FINAL
@@ -309,12 +323,25 @@ sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
 
 
 
-# Things for installer to do, via chroot
+# Things for installer to do:
 #
-# - prompt for top layer
-# - hostname, mailname
+# FIXME: prompt (e.g., dialog, whiptail) or cli for values?
+#
+# - prompt for top layer (ES, ES-file, ES-web, VMM, or Workstation)
+# - prompt for hostname (select from awesome-powers list? or just entry?)
+# - prompt for domain name (or prompt for fqdn above?)
+# - prompt for really destroy provided volume
+#
+# - create ext4 fs on provided device/volume
+# - create upper fs hierarchy upper/{upper,work}
+# - mount overlay appropriately
+# - /etc/hostname, /etc/mailname
 # - dbus-uuidgen > /etc/machine-id
+#
+# via chroot:
+#
 # - root pw?  localadmin pw?
+# - /etc/fstab?
 #
 # - dpkg-reconfigure
 #   - postfix (get the defaults seeded, run noninteractively to get fqdn right)
@@ -325,3 +352,20 @@ sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
 # - awesome-powers configenator
 #   - update && pull first?
 #   - use specified hostname if unique with match, or prompt for host/site
+#   - get the following things cm'd:
+#     - grkrellmd
+#     - unattended-upgrades
+#     - sshd.conf
+#     - ssh.conf
+#     - autofs
+#     - telegraf.conf
+#     - krb5.conf
+#     - pam.d/common-passwd (or change localadmin uid to 500?)
+#   - service enable/disable?
+#   - useradd?
+#
+#
+# - create new host.sqsh from overlay mount (perhaps?)
+#
+# NOTE: time-out... i think the installer might just end up living in
+#       awesome-powers...
