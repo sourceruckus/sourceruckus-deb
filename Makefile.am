@@ -134,6 +134,36 @@ sysroot/.RUCKUS-ES-APT: sysroot/.RUCKUS-ES-APT-PREP
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES)
 	touch $@
 
+sysroot/etc/apt/sources.list.d/sourceruckus.list: sysroot/.RUCKUS-ES-APT
+	$(MAKE) sysroot-mount-vfs
+	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) apt-key add -
+	echo "deb https://sourceruckus.github.io/ppa focal main" > $@
+
+sysroot/etc/apt/sources.list.d/influxdb.list: sysroot/.RUCKUS-ES-APT
+	$(MAKE) sysroot-mount-vfs
+	wget -qO- https://repos.influxdata.com/influxdb.key | $(CHROOT) apt-key add -
+	echo "deb https://repos.influxdata.com/ubuntu focal stable" > $@
+
+sysroot/etc/apt/sources.list.d/grafana.list: sysroot/.RUCKUS-ES-APT
+	$(MAKE) sysroot-mount-vfs
+	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) apt-key add -
+	echo "deb https://packages.grafana.com/oss/deb stable main" > $@
+
+# NOTE: We do this instead of using add-apt-repository to make things
+#	a bit more consistent in here and to avoid multiple apt update
+#	calls.
+sysroot/etc/apt/sources.list.d/linbit-drbd9.list: sysroot/.RUCKUS-ES-APT
+	$(MAKE) sysroot-mount-vfs
+	$(CHROOT) gpgconf --launch gpg-agent
+	$(CHROOT) gpg --ignore-time-conflict --no-options --no-default-keyring \
+	    --secret-keyring /etc/apt/secring.gpg \
+	    --trustdb-name /etc/apt/trustdb.gpg \
+	    --keyring /etc/apt/trusted.gpg \
+	    --keyserver keyserver.ubuntu.com \
+	    --recv CC1B5A793C04BB3905AD837734893610CEAA9512
+	$(CHROOT) gpgconf --kill all
+	echo "deb http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu focal main" > $@
+
 # NOTE: Definition of "3rd Party" in here is "upstream != Ubuntu".
 #       That means our own Source Ruckus PPA is considered "3rd
 #       Party".
