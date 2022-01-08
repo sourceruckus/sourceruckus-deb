@@ -150,22 +150,20 @@ sysroot/.RUCKUS-ES-APT: sysroot/.RUCKUS-ES-APT-PREP
 #       missing packages), manually chroot into the resulting system,
 #       build packages and upload them to our PPA.
 #
-# FIXME: should I wait until ES-file and VMM for drbd-utils?  or stick
-#        it in here?  same with openzfs.
+# NOTE: I'm including ruckusrd on ES even though I only intend to use
+#       it as a virtual machine so that we have the included dev
+#       scripts (e.g., doit, extractenator).  Also, I'm planning to
+#       add sqsh_layer maintenance functionality to ruckusrd, which
+#       we'll want on all the layers.
 #
-# FIXME: still have to figure these bits out...
-#
-# - awesome-powers (just clone this in /scrap)
-# - additional apt packages (that would have installed ubuntu deps)
-#   - zfs-auto-snapshot (or make it an awesome-powers submodule?)
-#   - sanoid (or make it an awesome-powers submodule?)
+# NOTE: We prep the PPAs for the ES-file and ES-web additions now, so
+#       that we can easily apt install things for testing and
+#       corner-cases (e.g. combined file/web server).
 #
 PKGS_ES_3RDPARTY =
 PKGS_ES_3RDPARTY += telegraf #(135M! didn't realize it was that large)
 PKGS_ES_3RDPARTY += ruckusrd
 PKGS_ES_3RDPARTY += pingenator
-PKGS_ES_3RDPARTY += drbd-utils
-PKGS_ES_3RDPARTY += openzfs # FIXME: get the pkg names right
 sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/sourceruckus.list
 sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/influxdb.list
 sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/grafana.list
@@ -176,28 +174,41 @@ sysroot/.RUCKUS-ES-3RDPARTY: sysroot/.RUCKUS-ES-APT
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES_3RDPARTY)
 	touch $@
 
-# FIXME: add some systemctl enable/disable calls in here, and maybe
-#        systemctl set-default multi-user.target
+# the finalization step - set default boot target, disable some
+# services, tweak some files, etc.
 #
-# FIXME: clone awesome-powers and prep it's submodules in here?
+# NOTE: We clone awesome-powers and prep it's submodules in here, so
+#       that it's available if we're installing w/out an internet
+#       connection later on.
 #
-# FIXME: i need to either add localadmin here or set root w/out a pw
-#        and add users later.  if we add localadmin, we want /etc/skel
-#        and /etc/login.defs set appropriately first... and those are
-#        in awesome-powers...  so do we wait for useradd until
-#        install-time?
+# NOTE: We do NOT create local users here.  That's handled by
+#       awesome-powers during installation/groom.
+#
+# NOTE: We change UID_MIN and GID_MIN to 500 in /etc/login.defs
+#       accross-the-board to differentiate local users from krb5
+#       users.  Otherwise, if krb server is unreachable, it takes a
+#       few minutes to authenticate local users.
+#
+# NOTE: We create globally-managed-devices.conf because all interfaces
+#       end up "unmanaged" in NetworkManager w/out it.
 #
 sysroot/.RUCKUS-ES-FINAL: sysroot/.RUCKUS-ES-3RDPARTY
 	$(MAKE) sysroot-mount-vfs
+	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
+	echo "rootfs / auto defaults 0 0" > sysroot/etc/fstab
+	touch sysroot/etc/NetworkManager/conf.d/10-globally-managed-devices.conf
+	mkdir -p sysroot/scrap && cd sysroot/scrap && \
+	    git clone https://github.com/sourceruckus/awesome-powers.git && \
+	    cd awesome-powers && ./autogen.sh
 	$(CHROOT) apt clean
-	$(CHROOT) sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' /etc/login.defs
-	$(CHROOT) useradd -c "Local Administrator" -m -s /usr/bin/zsh -G adm,sudo localadmin
 	$(CHROOT) systemctl set-default multi-user.target
-	$(CHROOT) echo "rootfs / auto defaults 0 0" > /etc/fstab
-	$(CHROOT) touch /etc/NetworkManager/conf.d/10-globally-managed-devices.conf
 	$(CHROOT) systemctl disable dnsmasq
 	touch $@
 
+# FIXME: migrate to -comp zstd.  Ubuntu 18.04's squashfs doesn't
+#        support it, but we could always compile our own in /usr/local
+#        or something.
+#
 es.sqsh: sysroot/.RUCKUS-ES-FINAL
 	umount -R $(dir $^)/{proc,sys,dev}
 	mksquashfs $(dir $^) $@ -comp lz4 -Xhc -noappend -wildcards -e .RUCKUS*
@@ -206,23 +217,25 @@ es.sqsh: sysroot/.RUCKUS-ES-FINAL
 ################################################################################
 # ES-file
 #
-# Really basic file-server... we use ES-wine at CAH so we can run
-# AVIMarkServer via wine on the file server.
+# Based on ES, adds file-server specific packages.
 #
-# FIXME: Is there really anything special we need for a file server
-#        that we couldn't just stick in the base ES image?  If so,
-#        build an es-file.sqsh between es.sqsh and es-web.sqsh
+# NOTE: This image includes upstream Wine (including full 32bit
+#       library support) so you can run Windows junk.  For example, at
+#       the vet hospital we run AVImarkServer.
 #
-# FIXME: My latest thought on this, is to ditch ES-wine and roll the
-#        wine additions in here along w/ orthanc and whatever else I
-#        need for the file-server at CAH.
 #
+# FIXME: todo
+#
+# - setup overlay w/ es.sqsh
 # - enable 32bit libs across the board
 # - apt
 #   - gcc-multilib (?) (85M)
 #   - wine (via upstream ppa)
 #
 PKGS_ESFILE =
+PKGS_ESFILE += drbd-utils # from previously added upstream ppa
+PKGS_ESFILE += openzfs # from previously added sourceruckus ppa # FIXME: get the pkg names right
+PKGS_ESFILE += minidlna
 PKGS_ESFILE += orthanc
 PKGS_ESFILE += orthanc-dicomweb
 PKGS_ESFILE += orthanc-doc
@@ -236,18 +249,12 @@ PKGS_ESFILE += orthanc-wsi
 ################################################################################
 # ES-web
 #
-# Based ES, not ES-file, and adds web-server stuff.
-#
-# - via apt
-#   - apache2
-#   - influxdb (upstream ppa)
-#   - grafana (upstream ppa)
-#   - unifi (wget the .deb?)
+# Based on ES, not ES-file, and adds web-server stuff.
 #
 PKGS_ESWEB =
 PKGS_ESWEB += apache2 ssl-cert
 PKGS_ESWEB += influxdb # upstream ppa added already
-PKGS_ESWEB += grafana # upstream ppa added
+PKGS_ESWEB += grafana # upstream ppa added already
 
 # FIXME: Considered adding the unifi deb to my ppa... but I'm pretty
 #        sure it adds it's own ppa as upstream for updates, so that's
@@ -262,27 +269,29 @@ PKGS_ESWEB_LOCAL += unifi
 # VMM (Xen Dom0)
 #
 # Based on ES, not ES-file or ES-web, adds things needed for our VMM
-# setup.
+# setup.  This is the first layer that is intended for use on physical
+# hardware (i.e., not a virtual machine), so it's where we start to
+# add in bootloader and more hardware-centric things.
 #
-# - compile things
-#   - xen
 # - apt
 #   - efibootmgr
 #   - syslinux extlinux isolinux
 #   - ntfs3g?
 #   - fwupd
-#   - fuse?
 #   - dkms
 #   - smartmontools
 #   - drbd9 (should I wait until here and use upstream ppa?)
 # - compile/apt
 #   - ruckusrd (if we haven't already)
+#   - xen
 PKGS_VMM =
+PKGS_VMM += drbd-utils # from previously added upstream ppa
+PKGS_VMM += openzfs # from previously added sourceruckus ppa # FIXME: get the pkg names right
 PKGS_VMM += groff ghostscript imagemagick libpaper1 netpbm psutils
 
 
 ################################################################################
-## Workstation
+# Workstation
 #
 # Based off VMM (which exludes ES-file and ES-web additions), adds
 # everything else we want in an awesome workstation of doom (including
@@ -291,12 +300,13 @@ PKGS_VMM += groff ghostscript imagemagick libpaper1 netpbm psutils
 # NOTE: Similar to ES-web, we want a full multilib setup with upstream
 #       Wine for the Workstation.
 #
+# - 32bit update
 # - via apt
 #   - ubuntu-desktop (maybe exclude a few pkgs?)
-#   - wireshark gkrellm emacs gitk git-gui
+#   - wireshark gkrellm gitk git-gui
+#   - emacs (replaces emacs-nox)
 #   - firefox
 #   - libreoffice
-#   - teamviewer (because it won't really work until I have graphical boot?)
 #   - audacity audacious rhythmbox sox ogg123 vorbis-tools etc
 #   - jackd
 #   - gimp inkscape
@@ -305,6 +315,8 @@ PKGS_VMM += groff ghostscript imagemagick libpaper1 netpbm psutils
 #   - special font packages (maybe?)
 #   - rdesktop (and more?)
 # - 3rd party stuff
+#   - wine (upstream ppa)
+#   - teamviewer (wget the .deb, because it won't really work until I have graphical boot?)
 #   - google-chrome google-earth (wget the .deb?)
 #   - ardour (wget the download)
 #   - qgis (upstream ppa)
