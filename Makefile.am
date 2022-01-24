@@ -228,11 +228,6 @@ PKGS_ES_3RDPARTY =
 PKGS_ES_3RDPARTY += telegraf #(135M! didn't realize it was that large)
 PKGS_ES_3RDPARTY += ruckusrd
 PKGS_ES_3RDPARTY += pingenator
-PKGS_ES_3RDPARTY += zfs # our package, from sourceruckus ppa
-PKGS_ES_3RDPARTY += zfs-auto-snapshot # ubuntu ppa, but now using our zfs package
-# deps for sanoid, so we can use a development snapshot if desired
-PKGS_ES_3RDPARTY += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
-PKGS_ES_3RDPARTY += sanoid # ubuntu ppa, but now using our zfs package
 
 
 sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/sourceruckus.list
@@ -294,10 +289,6 @@ es.sqsh: sysroot/.RUCKUS-ES-FINAL
 #       library support) so you can run Windows junk.  For example, at
 #       the vet hospital we run AVImarkServer.
 #
-#
-# FIXME: maybe make this ES-vet and move drbd, zfs, minidlna down to
-#        ES?
-#
 # FIXME: todo
 #
 # - setup overlay w/ es.sqsh
@@ -308,9 +299,14 @@ es.sqsh: sysroot/.RUCKUS-ES-FINAL
 #
 PKGS_ESFILE =
 PKGS_ESFILE += drbd-utils # from previously added upstream ppa
-#PKGS_ESFILE += openzfs # from previously added sourceruckus ppa # FIXME: get the pkg names right
-#PKGS_ESFILE += zfs python3-pyzfs
-PKGS_ESFILE += minidlna
+PKGS_ZFS =
+PKGS_ZFS += zfs # our package, from sourceruckus ppa
+PKGS_ZFS += zfs-auto-snapshot # ubuntu ppa, but now using our zfs package
+# deps for sanoid, so we can use a development snapshot if desired
+PKGS_ZFS += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
+PKGS_ZFS += sanoid # ubuntu ppa, but now using our zfs package
+PKGS_ESFILE += $(PKGS_ZFS)
+PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin librsvg2-common
 PKGS_ESFILE += orthanc
 PKGS_ESFILE += orthanc-dicomweb
 PKGS_ESFILE += orthanc-doc
@@ -361,8 +357,11 @@ PKGS_ESWEB_LOCAL += unifi
 #   - xen
 PKGS_VMM =
 PKGS_VMM += drbd-utils # from previously added upstream ppa
-#PKGS_VMM += openzfs # from previously added sourceruckus ppa # FIXME: get the pkg names right
+PKGS_VMM += $(PKGS_ZFS)
+# FIXME: might now want/need these until workstation... not sure why I
+#        stuck them in VMM.
 PKGS_VMM += groff ghostscript imagemagick libpaper1 netpbm psutils
+PKGS_VMM += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
 
 
 ################################################################################
@@ -407,6 +406,11 @@ PKGS_VMM += groff ghostscript imagemagick libpaper1 netpbm psutils
 sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/wine.list
 sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/qgis.list
 sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
+
+# FIXME: are these included by ubuntu-desktop?  i thought they
+#        were... but apt show va-driver-all lists all the variants of
+#        ubuntu-desktop except the main one.
+PKGS_WORKSTATION += va-driver-all vdpau-driver-all
 
 
 
