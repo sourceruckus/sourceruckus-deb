@@ -114,6 +114,40 @@ PKGS_ES += build-essential manpages-dev # (190M)
 PKGS_ES += autoconf automake autopoint m4 libtool gettext pkg-config bison flex # (13M)
 PKGS_ES += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc # (62M)
 PKGS_ES += yajl-tools
+# add these in for ruckusrd subproject deps
+PKGS_ES += libkmod-dev libblkid-dev # for eudev
+PKGS_ES += libaio-dev # for lvm2
+PKGS_ES += liblz4-dev liblzma-dev libzstd-dev zlib1g-dev liblzo2-dev # for squashfs-tools
+PKGS_ES += libssl-dev # for zfs
+PKGS_ES += libacl1-dev libattr1-dev libext2fs-dev libpopt-dev libltdl-dev xxhash libxxhash-dev # for rsync
+PKGS_ES += libefivar1 libefivar-dev libefiboot1 libefiboot-dev # for efibootmgr
+# add these for kernel compilation
+PKGS_ES += libncurses-dev libelf-dev
+# to build zfs deb packages
+#
+# NOTE: These things are required by the deb-utils target, which
+#       builds a bunch of RPMs and then converts them into DEBs.  The
+#       resulting packages are really only appropriate for a local apt
+#       install *.deb (because they don't do ANY dependency tracking).
+#       That's why I maintain special Makefile rules (based on
+#       ruckusrd's 'dpkg' target) to build a single zfs package with
+#       full dependency tracking.
+#
+#       In other words, we don't really need alien, and we probably
+#       don't really need the two perl libs it required.  We probably
+#       don't need fakeroot, either.  But we DO need the rest of them
+#       (in order to compile OpenZFS later on), I haven't tested at
+#       all w/out those packages, we might eventually want them, and
+#       it's not really that much more to add.
+#
+PKGS_ES += alien libarchive-cpio-perl libmail-sendmail-perl
+PKGS_ES += libpython3-dev
+PKGS_ES += python3-distutils
+PKGS_ES += python3-setuptools
+PKGS_ES += python3-cffi
+PKGS_ES += python3-distlib python3-packaging
+PKGS_ES += fakeroot
+PKGS_ES += libudev-dev
 
 # NOTE: We want apt install to be completely noninteractive with
 #       pre-seeded values for all debconf questions.  My initial idea
@@ -194,6 +228,13 @@ PKGS_ES_3RDPARTY =
 PKGS_ES_3RDPARTY += telegraf #(135M! didn't realize it was that large)
 PKGS_ES_3RDPARTY += ruckusrd
 PKGS_ES_3RDPARTY += pingenator
+PKGS_ES_3RDPARTY += zfs # our package, from sourceruckus ppa
+PKGS_ES_3RDPARTY += zfs-auto-snapshot # ubuntu ppa, but now using our zfs package
+# deps for sanoid, so we can use a development snapshot if desired
+PKGS_ES_3RDPARTY += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
+PKGS_ES_3RDPARTY += sanoid # ubuntu ppa, but now using our zfs package
+
+
 sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/sourceruckus.list
 sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/influxdb.list
 sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/grafana.list
@@ -254,6 +295,9 @@ es.sqsh: sysroot/.RUCKUS-ES-FINAL
 #       the vet hospital we run AVImarkServer.
 #
 #
+# FIXME: maybe make this ES-vet and move drbd, zfs, minidlna down to
+#        ES?
+#
 # FIXME: todo
 #
 # - setup overlay w/ es.sqsh
@@ -264,7 +308,8 @@ es.sqsh: sysroot/.RUCKUS-ES-FINAL
 #
 PKGS_ESFILE =
 PKGS_ESFILE += drbd-utils # from previously added upstream ppa
-PKGS_ESFILE += openzfs # from previously added sourceruckus ppa # FIXME: get the pkg names right
+#PKGS_ESFILE += openzfs # from previously added sourceruckus ppa # FIXME: get the pkg names right
+#PKGS_ESFILE += zfs python3-pyzfs
 PKGS_ESFILE += minidlna
 PKGS_ESFILE += orthanc
 PKGS_ESFILE += orthanc-dicomweb
@@ -316,7 +361,7 @@ PKGS_ESWEB_LOCAL += unifi
 #   - xen
 PKGS_VMM =
 PKGS_VMM += drbd-utils # from previously added upstream ppa
-PKGS_VMM += openzfs # from previously added sourceruckus ppa # FIXME: get the pkg names right
+#PKGS_VMM += openzfs # from previously added sourceruckus ppa # FIXME: get the pkg names right
 PKGS_VMM += groff ghostscript imagemagick libpaper1 netpbm psutils
 
 
