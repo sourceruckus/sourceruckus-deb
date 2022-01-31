@@ -1,0 +1,118 @@
+#!/bin/bash
+#
+# get list of dev packages for all installed lib* packages
+#
+# This is way more complicated than you'd think... for example, libacl1's devel
+# package is libacl-dev, so the names don't 100% correlate.  Also, if we're
+# going to try to verify version numbers match, we have to consider that the
+# installed lib might need to be upgraded.
+#
+# NOTE: This is ONLY going to work correctly if all lib* package are up-to-date
+#       already.  Otherwise version mismatches will cause dev packages to get
+#       left out of the results.
+#
+# dpkg-query --list lib\* | awk '/^ii/ {print}'
+#
+#ii  libapt-pkg6.0:amd64               2.0.6                             amd64        package management runtime library
+#ii  libx11-6:amd64                    2:1.6.9-2ubuntu1.2                amd64        X11 client-side library
+#ii  libx11-data                       2:1.6.9-2ubuntu1.2                all          X11 client-side library
+#ii  libxau6:amd64                     1:1.0.9-0ubuntu1                  amd64        X11 authorisation library
+#ii  libxslt1.1:amd64                  1.1.34-4                          amd64        XSLT 1.0 processing library - runtime library
+#
+# We need to find the following dev packages
+#
+# apt list lib*-dev
+#
+#libapt-pkg-dev/focal-updates 2.0.6 amd64
+#libx11-dev/focal-updates,focal-security 2:1.6.9-2ubuntu1.2 amd64
+#libxau-dev/focal 1:1.0.9-0ubuntu1 amd64
+#libxslt1-dev/focal 1.1.34-4 amd64
+#
+
+# get a list of potential lib*-dev packages once up front, so we can look at it
+# over and over instead of calling apt over and over (and wasting time with
+# network lookups).
+#
+# NOTE: apt does not have a stable CLI interface.  It warns of this on stderr,
+#       and I really don't care...  this is the beset we've got, and we're
+#       really not depending on it's output all that strictly in our grepping
+#       down bellow.
+#
+potentials=$(apt list lib*-dev 2>/dev/null)
+
+# iterate over list of installed lib* packages
+devpkgs=
+already_installed=
+while read pkg ver; do
+    # parse pkg into name and arch
+    name=${pkg%:*}
+    if [ "$name" != "$pkg" ]; then
+        arch=${pkg##*:}
+    else
+        arch=
+    fi
+    # detect and skip already intalled dev packages
+    if [ "$name" != "${name%-dev}" ]; then
+        already_installed+=" $name"
+        continue
+    fi
+    #echo name=$name arch=$arch ver=$ver 1>&2
+    devpkg=
+    tryname=$name
+    while [ "$tryname" != "lib" ]; do
+        # check $tryname-dev
+        trydev=$tryname-dev
+        #echo "checking $trydev" 1>&2
+        if (echo $potentials | grep $trydev | grep -q $ver); then
+            # all done, we have a matching devname
+            #echo "match: $trydev" 1>&2
+            devpkg=$trydev
+            break
+        fi
+        # chop off the last char of $name if it's a character associated with
+        # version strings
+        nextname=${tryname%*[-.v[:digit:]]}
+        # if tryname is still equal to name, we give up
+        if [ "$nextname" = "$tryname" ]; then
+            break
+        fi
+        # keep looping to try again
+        tryname=$nextname
+    done
+    if [ -n "$devpkg" ]; then
+        devpkgs+=" $devpkg"
+    else
+        # ok, there just isn't a matching -dev package for this lib... which is
+        # strange
+        #
+        # ignore a bunch of likely false-positives
+        if [ "$name" != "${name%-perl}" ] ||
+               [ "$name" != "${name%-data}" ] ||
+               [ "$name" != "${name%-bin}" ] ||
+               [ "$name" != "${name%-config}" ] ||
+               [ "$name" != "${name%-heimdal}" ] ||
+               [ "$name" != "${name%-common}" ]; then
+            #echo "ignoring $name"
+            continue
+        fi
+        # otherwise, issue a warning
+        echo "WARNING: no match for $pkg $ver" 1>&2
+    fi
+done < <(dpkg-query --list lib\* | awk '/^ii/ {print $2,$3}')
+
+# remove already installed dev pkgs from our list
+#
+# NOTE: We cannot do this in the 1st pass through our list, because that would
+#       depend on dev packages being named such that they appear after the lib
+#       package, which is not always the case.
+#
+for name in $already_installed; do
+    #echo "removing $name from devpkgs list"
+    newdevpkgs=${devpkgs//$name}
+    if [ "$newdevpkgs" != "$devpkgs" ]; then
+        #echo "removed $name from devpkgs list"
+        devpkgs=$newdevpkgs
+    fi
+done
+
+echo $devpkgs
