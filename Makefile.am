@@ -109,20 +109,35 @@ PKGS_ES += libpam-krb5
 PKGS_ES += mosh
 PKGS_ES += wget
 PKGS_ES += man-db wamerican whois
+# FIXME: similar to -dev package note bellow...  we should at least
+#        consider leaving the compilation toolchain stuff out of ES
+#        hosts... it's not like we can't manually install it in some
+#        unforseen situation where we need it.
+#
 # compilation toolchain (~300M)
-PKGS_ES += build-essential manpages-dev # (190M)
-PKGS_ES += autoconf automake autopoint m4 libtool gettext pkg-config bison flex # (13M)
-PKGS_ES += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc # (62M)
-PKGS_ES += yajl-tools
+PKGS_COMPILATION =
+PKGS_COMPILATION += build-essential manpages-dev # (190M)
+PKGS_COMPILATION += autoconf automake autopoint m4 libtool gettext pkg-config bison flex # (13M)
+PKGS_COMPILATION += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc # (62M)
+PKGS_COMPILATION += yajl-tools
+# FIXME: should we leave all these -dev packages until VMM or
+#        Workstation...?  I only needed them at this point the first
+#        time through because I needed to be able to build up a clean
+#        20.04 host to initially populate the focal sourceruckus ppa.
+#        In the future, we could just build up temporary host to
+#        bootstrap around that chicken-and-the-egg problem... then we
+#        wouldn't have to manage updates for all these (and disk
+#        space) on all our ES hosts.
+#
 # add these in for ruckusrd subproject deps
-PKGS_ES += libkmod-dev libblkid-dev # for eudev
-PKGS_ES += libaio-dev # for lvm2
-PKGS_ES += liblz4-dev liblzma-dev libzstd-dev zlib1g-dev liblzo2-dev # for squashfs-tools
-PKGS_ES += libssl-dev # for zfs
-PKGS_ES += libacl1-dev libattr1-dev libext2fs-dev libpopt-dev libltdl-dev xxhash libxxhash-dev # for rsync
-PKGS_ES += libefivar1 libefivar-dev libefiboot1 libefiboot-dev # for efibootmgr
+PKGS_COMPILATION += libkmod-dev libblkid-dev # for eudev
+PKGS_COMPILATION += libaio-dev # for lvm2
+PKGS_COMPILATION += liblz4-dev liblzma-dev libzstd-dev zlib1g-dev liblzo2-dev # for squashfs-tools
+PKGS_COMPILATION += libssl-dev # for zfs
+PKGS_COMPILATION += libacl1-dev libattr1-dev libext2fs-dev libpopt-dev libltdl-dev xxhash libxxhash-dev # for rsync
+PKGS_COMPILATION += libefivar1 libefivar-dev libefiboot1 libefiboot-dev # for efibootmgr
 # add these for kernel compilation
-PKGS_ES += libncurses-dev libelf-dev
+PKGS_COMPILATION += libncurses-dev libelf-dev
 # to build zfs deb packages
 #
 # NOTE: These things are required by the deb-utils target, which
@@ -140,14 +155,14 @@ PKGS_ES += libncurses-dev libelf-dev
 #       all w/out those packages, we might eventually want them, and
 #       it's not really that much more to add.
 #
-PKGS_ES += alien libarchive-cpio-perl libmail-sendmail-perl
-PKGS_ES += libpython3-dev
-PKGS_ES += python3-distutils
-PKGS_ES += python3-setuptools
-PKGS_ES += python3-cffi
-PKGS_ES += python3-distlib python3-packaging
-PKGS_ES += fakeroot
-PKGS_ES += libudev-dev
+PKGS_COMPILATION += alien libarchive-cpio-perl libmail-sendmail-perl
+PKGS_COMPILATION += libpython3-dev
+PKGS_COMPILATION += python3-distutils
+PKGS_COMPILATION += python3-setuptools
+PKGS_COMPILATION += python3-cffi
+PKGS_COMPILATION += python3-distlib python3-packaging
+PKGS_COMPILATION += fakeroot
+PKGS_COMPILATION += libudev-dev
 
 # NOTE: We want apt install to be completely noninteractive with
 #       pre-seeded values for all debconf questions.  My initial idea
@@ -273,7 +288,8 @@ sysroot/.RUCKUS-ES-FINAL: sysroot/.RUCKUS-ES-3RDPARTY
 
 # FIXME: migrate to -comp zstd.  Ubuntu 18.04's squashfs doesn't
 #        support it, but we could always compile our own in /usr/local
-#        or something.
+#        or something. (or provide a newer bionic deb via source
+#        ruckus ppa)
 #
 es.sqsh: sysroot/.RUCKUS-ES-FINAL
 	umount -R $(dir $^)/{proc,sys,dev}
