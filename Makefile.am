@@ -25,6 +25,9 @@ all: es.sqsh es-file.sqsh es-web.sqsh vmm.sqsh workstation.sqsh
 
 
 # stage1 - 340M
+#
+# FIXME: tweak UID_MIN and GID_MIN before proceeding
+#
 sysroot/.RUCKUS-DEBOOTSTRAP:
 	debootstrap --arch=amd64 focal $(dir $@) http://archive.ubuntu.com/ubuntu/
 	touch $@
@@ -87,6 +90,11 @@ PKGS_ES += bind9-host bind9-dnsutils net-tools
 PKGS_ES += vlan bridge-utils ifenslave
 PKGS_ES += postfix #(no config, use dpkg-reconfigre to tweak later)
 PKGS_ES += mailutils
+# FIXME: should we wait on lm-sensors fancontrol read-edid and
+#        i2c-tools until later?  the original intent here was for our
+#        ES.img to be for virtual machines, which would lack sensors
+#        and fans.
+#
 PKGS_ES += zsh gkrellmd lm-sensors fancontrol read-edid i2c-tools
 PKGS_ES += git-email
 PKGS_ES += emacs-nox emacs-common-non-dfsg
@@ -120,6 +128,7 @@ PKGS_COMPILATION += build-essential manpages-dev # (190M)
 PKGS_COMPILATION += autoconf automake autopoint m4 libtool gettext pkg-config bison flex # (13M)
 PKGS_COMPILATION += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc # (62M)
 PKGS_COMPILATION += yajl-tools
+PKGS_COMPILATION += dwarves # needed by kernel CONFIG_DEBUG_INFO_BTF
 # FIXME: should we leave all these -dev packages until VMM or
 #        Workstation...?  I only needed them at this point the first
 #        time through because I needed to be able to build up a clean
@@ -270,6 +279,16 @@ sysroot/.RUCKUS-ES-3RDPARTY: sysroot/.RUCKUS-ES-APT
 #       users.  Otherwise, if krb server is unreachable, it takes a
 #       few minutes to authenticate local users.
 #
+# FIXME: blast, that doesn't quite do what i want because tons of
+#        packages assume that ubuntu has this set to 1000...  gkrellmd
+#        and telegraf have added users 999 and 989, so useradd starts
+#        at 1000 anyways.  I was trying to do that instead of sedding
+#        things into the pam config files because then subsequent apt
+#        upgrades will ask what to do with local changes...
+#
+#        actually, i wonder if i had changed it to 500 way back after
+#        the debootstrap invocation things would have gone better...?
+#
 # NOTE: We create globally-managed-devices.conf because all interfaces
 #       end up "unmanaged" in NetworkManager w/out it.
 #
@@ -314,6 +333,7 @@ es.sqsh: sysroot/.RUCKUS-ES-FINAL
 #   - wine (via upstream ppa)
 #
 PKGS_ESFILE =
+PKGS_ESFILE += nfs-kernel-server
 PKGS_ESFILE += drbd-utils # from previously added upstream ppa
 PKGS_ZFS =
 PKGS_ZFS += zfs # our package, from sourceruckus ppa
@@ -322,7 +342,7 @@ PKGS_ZFS += zfs-auto-snapshot # ubuntu ppa, but now using our zfs package
 PKGS_ZFS += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
 PKGS_ZFS += sanoid # ubuntu ppa, but now using our zfs package
 PKGS_ESFILE += $(PKGS_ZFS)
-PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin librsvg2-common
+PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin librsvg2-common libbdplus0
 PKGS_ESFILE += orthanc
 PKGS_ESFILE += orthanc-dicomweb
 PKGS_ESFILE += orthanc-doc
@@ -423,6 +443,8 @@ sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/wine.list
 sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/qgis.list
 sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
 
+PKGS_WORKSTATION =
+PKGS_WORKSTATION += $(PKGS_COMPILATION)
 # FIXME: are these included by ubuntu-desktop?  i thought they
 #        were... but apt show va-driver-all lists all the variants of
 #        ubuntu-desktop except the main one.
