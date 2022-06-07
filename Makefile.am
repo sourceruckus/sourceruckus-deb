@@ -117,6 +117,16 @@ PKGS_ES += libpam-krb5
 PKGS_ES += mosh
 PKGS_ES += wget
 PKGS_ES += man-db wamerican whois
+PKGS_ES += psmisc
+PKGS_ES += fio
+PKGS_ES += iperf
+PKGS_ES += iperf3
+PKGS_ES += iotop
+PKGS_ES += sdparm
+PKGS_ES += sysstat
+PKGS_ES += nmap
+#PKGS_ES += ispell iamerican # FIXME: ispell vs aspell?
+#
 # FIXME: similar to -dev package note bellow...  we should at least
 #        consider leaving the compilation toolchain stuff out of ES
 #        hosts... it's not like we can't manually install it in some
@@ -145,6 +155,7 @@ PKGS_COMPILATION += liblz4-dev liblzma-dev libzstd-dev zlib1g-dev liblzo2-dev # 
 PKGS_COMPILATION += libssl-dev # for zfs
 PKGS_COMPILATION += libacl1-dev libattr1-dev libext2fs-dev libpopt-dev libltdl-dev xxhash libxxhash-dev # for rsync
 PKGS_COMPILATION += libefivar1 libefivar-dev libefiboot1 libefiboot-dev # for efibootmgr
+PKGS_COMPILATION += netpbm # for groff
 # add these for kernel compilation
 PKGS_COMPILATION += libncurses-dev libelf-dev
 # to build zfs deb packages
@@ -207,6 +218,16 @@ sysroot/etc/apt/sources.list.d/grafana.list: sysroot/.RUCKUS-ES-APT
 	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) apt-key add -
 	echo "deb https://packages.grafana.com/oss/deb stable main" > $@
 
+# FIXME: i added this to try and get boxes to be able to browse to my
+# file server via file manager.  didn't seem to work as desired, and
+# now there's a duplicate wsdd repo on github, so commenting this out
+# for now
+#
+#sysroot/etc/apt/sources.list.d/wsdd.list: sysroot/.RUCKUS-ES-APT
+#	$(MAKE) sysroot-mount-vfs
+#	wget -qO- https://pkg.ltec.ch/public/conf/ltec-ag.gpg.key | $(CHROOT) apt-key add -
+#	echo "deb https://pkg.ltec.ch/public/ focal main" > $@
+
 # NOTE: We do this instead of using add-apt-repository to make things
 #	a bit more consistent in here and to avoid multiple apt update
 #	calls.
@@ -252,6 +273,11 @@ PKGS_ES_3RDPARTY =
 PKGS_ES_3RDPARTY += telegraf #(135M! didn't realize it was that large)
 PKGS_ES_3RDPARTY += ruckusrd
 PKGS_ES_3RDPARTY += pingenator
+PKGS_ES_3RDPARTY += doit
+PKGS_ES_3RDPARTY += kernel-builder
+PKGS_ES_3RDPARTY += extractenator
+PKGS_ES_3RDPARTY += firmwarenator
+PKGS_ES_3RDPARTY += microcodenator
 
 
 sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/sourceruckus.list
@@ -343,6 +369,7 @@ PKGS_ZFS += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
 PKGS_ZFS += sanoid # ubuntu ppa, but now using our zfs package
 PKGS_ESFILE += $(PKGS_ZFS)
 PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin librsvg2-common libbdplus0
+#PKGS_ESFILE += wsdd # from upstream ppa # FIXME: see FIXME above
 PKGS_ESFILE += orthanc
 PKGS_ESFILE += orthanc-dicomweb
 PKGS_ESFILE += orthanc-doc
@@ -351,6 +378,11 @@ PKGS_ESFILE += orthanc-imagej
 #PKGS_ESFILE += orthanc-postgresql
 PKGS_ESFILE += orthanc-webviewer
 PKGS_ESFILE += orthanc-wsi
+#FIXME: zfs services aren't enabled by default... did i do that on purpose?
+#
+#systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
+#  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
+#  zfs.target
 
 
 ################################################################################
@@ -360,8 +392,13 @@ PKGS_ESFILE += orthanc-wsi
 #
 PKGS_ESWEB =
 PKGS_ESWEB += apache2 ssl-cert
-PKGS_ESWEB += influxdb # upstream ppa added already
+PKGS_ESWEB += influxdb2 # upstream ppa added already
 PKGS_ESWEB += grafana # upstream ppa added already
+### NOT starting on installation, please execute the following statements to configure grafana to start automatically using systemd
+# sudo /bin/systemctl daemon-reload
+# sudo /bin/systemctl enable grafana-server
+### You can start grafana-server by executing
+# sudo /bin/systemctl start grafana-server
 
 # FIXME: Considered adding the unifi deb to my ppa... but I'm pretty
 #        sure it adds it's own ppa as upstream for updates, so that's
@@ -414,16 +451,18 @@ PKGS_VMM += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
 # - via apt
 #   - ubuntu-desktop (maybe exclude a few pkgs?)
 #   - wireshark gkrellm gitk git-gui
-#   - emacs (replaces emacs-nox)
+#   - emacs-gtk (replaces emacs-nox)
 #   - firefox
 #   - libreoffice
-#   - audacity audacious rhythmbox sox ogg123 vorbis-tools etc
+#   - audacity audacious rhythmbox sox vorbis-tools etc
 #   - jackd
 #   - gimp inkscape
 #   - vlc (via upstream snap?)
 #   - dvd player stuff (maybe?)
 #   - special font packages (maybe?)
 #   - rdesktop (and more?)
+#   - gnome-tweaks
+#   - libglvnd-dev meta-utils
 # - 3rd party stuff
 #   - wine (upstream ppa)
 #   - teamviewer (wget the .deb, because it won't really work until I have graphical boot?)
