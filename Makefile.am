@@ -436,7 +436,7 @@ upper_layer:
 # mksquashfs
 es-file.sqsh: .build/RUCKUS-ESFILE-FINAL
 	$(MAKE) sysroot-umount-vfs
-	mksquashfs sysroot $@ -comp lz4 -Xhc -noappend -wildcards
+	mksquashfs upper_layer/upper $@ -comp lz4 -Xhc -noappend -wildcards
 
 
 ################################################################################
