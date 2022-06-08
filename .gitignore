@@ -1,6 +1,7 @@
 # -*- sh -*-
 *~
 /FOO
+/.build
 /sysroot
 
 # autotools files

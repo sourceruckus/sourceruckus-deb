@@ -28,8 +28,9 @@ all: es.sqsh es-file.sqsh es-web.sqsh vmm.sqsh workstation.sqsh
 #
 # FIXME: tweak UID_MIN and GID_MIN before proceeding
 #
-sysroot/.RUCKUS-DEBOOTSTRAP:
-	debootstrap --arch=amd64 focal $(dir $@) http://archive.ubuntu.com/ubuntu/
+.build/RUCKUS-DEBOOTSTRAP:
+	$(MKDIR_P) $(dir $@)
+	debootstrap --arch=amd64 focal sysroot http://archive.ubuntu.com/ubuntu/
 	touch $@
 
 sysroot/proc/self:
@@ -61,7 +62,7 @@ sysroot-mount-vfs: sysroot/proc/self sysroot/sys/block sysroot/dev/block
 sysroot-umount-vfs:
 	umount -R sysroot/{proc,sys,dev} || echo already unmounted
 
-sysroot/.RUCKUS-ES-APT-PREP: sysroot/.RUCKUS-DEBOOTSTRAP
+.build/RUCKUS-ES-APT-PREP: .build/RUCKUS-DEBOOTSTRAP
 	$(MAKE) sysroot-mount-vfs
 	echo "deb http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse" > sysroot/etc/apt/sources.list
 	echo "deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted universe multiverse" >> sysroot/etc/apt/sources.list
@@ -201,23 +202,23 @@ PKGS_COMPILATION += libudev-dev
 #       that's what I'm doing.
 #
 APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
-sysroot/.RUCKUS-ES-APT: sysroot/.RUCKUS-ES-APT-PREP
+.build/RUCKUS-ES-APT: .build/RUCKUS-ES-APT-PREP
 	$(MAKE) sysroot-mount-vfs
 	cp debconf-config.dat sysroot/var/cache/debconf/config.dat
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES)
 	touch $@
 
-sysroot/etc/apt/sources.list.d/sourceruckus.list: sysroot/.RUCKUS-ES-APT
+sysroot/etc/apt/sources.list.d/sourceruckus.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) apt-key add -
 	echo "deb https://sourceruckus.github.io/ppa focal main" > $@
 
-sysroot/etc/apt/sources.list.d/influxdb.list: sysroot/.RUCKUS-ES-APT
+sysroot/etc/apt/sources.list.d/influxdb.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://repos.influxdata.com/influxdb.key | $(CHROOT) apt-key add -
 	echo "deb https://repos.influxdata.com/ubuntu focal stable" > $@
 
-sysroot/etc/apt/sources.list.d/grafana.list: sysroot/.RUCKUS-ES-APT
+sysroot/etc/apt/sources.list.d/grafana.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) apt-key add -
 	echo "deb https://packages.grafana.com/oss/deb stable main" > $@
@@ -227,7 +228,7 @@ sysroot/etc/apt/sources.list.d/grafana.list: sysroot/.RUCKUS-ES-APT
 # now there's a duplicate wsdd repo on github, so commenting this out
 # for now
 #
-#sysroot/etc/apt/sources.list.d/wsdd.list: sysroot/.RUCKUS-ES-APT
+#sysroot/etc/apt/sources.list.d/wsdd.list: .build/RUCKUS-ES-APT
 #	$(MAKE) sysroot-mount-vfs
 #	wget -qO- https://pkg.ltec.ch/public/conf/ltec-ag.gpg.key | $(CHROOT) apt-key add -
 #	echo "deb https://pkg.ltec.ch/public/ focal main" > $@
@@ -235,7 +236,7 @@ sysroot/etc/apt/sources.list.d/grafana.list: sysroot/.RUCKUS-ES-APT
 # NOTE: We do this instead of using add-apt-repository to make things
 #	a bit more consistent in here and to avoid multiple apt update
 #	calls.
-sysroot/etc/apt/sources.list.d/linbit-drbd9.list: sysroot/.RUCKUS-ES-APT
+sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) gpgconf --launch gpg-agent
 	$(CHROOT) gpg --ignore-time-conflict --no-options --no-default-keyring \
@@ -284,11 +285,11 @@ PKGS_ES_3RDPARTY += firmwarenator
 PKGS_ES_3RDPARTY += microcodenator
 
 
-sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/sourceruckus.list
-sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/influxdb.list
-sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/grafana.list
-sysroot/.RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
-sysroot/.RUCKUS-ES-3RDPARTY: sysroot/.RUCKUS-ES-APT
+.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/sourceruckus.list
+.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/influxdb.list
+.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/grafana.list
+.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
+.build/RUCKUS-ES-3RDPARTY: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) apt update
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES_3RDPARTY)
@@ -322,7 +323,7 @@ sysroot/.RUCKUS-ES-3RDPARTY: sysroot/.RUCKUS-ES-APT
 # NOTE: We create globally-managed-devices.conf because all interfaces
 #       end up "unmanaged" in NetworkManager w/out it.
 #
-sysroot/.RUCKUS-ES-FINAL: sysroot/.RUCKUS-ES-3RDPARTY
+.build/RUCKUS-ES-FINAL: .build/RUCKUS-ES-3RDPARTY
 	$(MAKE) sysroot-mount-vfs
 	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
 	echo "rootfs / auto defaults 0 0" > sysroot/etc/fstab
@@ -340,9 +341,9 @@ sysroot/.RUCKUS-ES-FINAL: sysroot/.RUCKUS-ES-3RDPARTY
 #        or something. (or provide a newer bionic deb via source
 #        ruckus ppa)
 #
-es.sqsh: sysroot/.RUCKUS-ES-FINAL
+es.sqsh: .build/RUCKUS-ES-FINAL
 	$(MAKE) sysroot-umount-vfs
-	mksquashfs $(dir $^) $@ -comp lz4 -Xhc -noappend -wildcards -e .RUCKUS*
+	mksquashfs sysroot $@ -comp lz4 -Xhc -noappend -wildcards
 
 sysroot-es-clean:
 	$(MAKE) sysroot-umount-vfs
@@ -428,21 +429,21 @@ upper_layer:
 	$(MKDIR_P) $@
 	mount -t tmpfs none $@
 
-sysroot/.RUCKUS-ESFILE-OVL:  sqsh_layer-es upper_layer
+.build/RUCKUS-ESFILE-OVL:  sqsh_layer-es upper_layer
 	$(MAKE) sysroot-es-clean
 	$(MKDIR_P) sysroot upper_layer/{upper,work}
 	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
 
 # apt install
-sysroot/.RUCKUS-ESFILE-APT: sysroot/.RUCKUS-ESFILE-OVL
+.build/RUCKUS-ESFILE-APT: .build/RUCKUS-ESFILE-OVL
 	$(MAKE) sysroot-mount-vfs
 	cp debconf-config.dat sysroot/var/cache/debconf/config.dat
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ESFILE)
 	touch $@
 
 # service enable/dislabe, tweaks, etc
-sysroot/.RUCKUS-ESFILE-FINAL: sysroot/.RUCKUS-ESFILE-APT
+.build/RUCKUS-ESFILE-FINAL: .build/RUCKUS-ESFILE-APT
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
 	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
@@ -450,9 +451,9 @@ sysroot/.RUCKUS-ESFILE-FINAL: sysroot/.RUCKUS-ESFILE-APT
 	touch $@
 
 # mksquashfs
-es-file.sqsh: sysroot/.RUCKUS-ESFILE-FINAL
+es-file.sqsh: .build/RUCKUS-ESFILE-FINAL
 #	$(MAKE) sysroot-umount-vfs
-#	mksquashfs $(dir $^) $@ -comp lz4 -Xhc -noappend -wildcards -e .RUCKUS*
+#	mksquashfs sysroot $@ -comp lz4 -Xhc -noappend -wildcards
 
 
 ################################################################################
@@ -548,9 +549,9 @@ PKGS_VMM += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
 #   - stupid autoupdate gui notification thing
 #   - snapd?
 #
-sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/wine.list
-sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/qgis.list
-sysroot/.RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
+.build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/wine.list
+.build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/qgis.list
+.build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
 
 PKGS_WORKSTATION =
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
