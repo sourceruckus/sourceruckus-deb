@@ -43,6 +43,7 @@ sysroot/dev/block:
 	mount --make-rslave $(dir $@)
 
 
+
 ################################################################################
 # ES (base)
 #
@@ -56,6 +57,9 @@ sysroot/dev/block:
 #        files via smbd, but that might be fine.
 #
 sysroot-mount-vfs: sysroot/proc/self sysroot/sys/block sysroot/dev/block
+
+sysroot-umount-vfs:
+	umount -R sysroot/{proc,sys,dev} || echo already unmounted
 
 sysroot/.RUCKUS-ES-APT-PREP: sysroot/.RUCKUS-DEBOOTSTRAP
 	$(MAKE) sysroot-mount-vfs
@@ -323,7 +327,7 @@ sysroot/.RUCKUS-ES-FINAL: sysroot/.RUCKUS-ES-3RDPARTY
 	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
 	echo "rootfs / auto defaults 0 0" > sysroot/etc/fstab
 	touch sysroot/etc/NetworkManager/conf.d/10-globally-managed-devices.conf
-	mkdir -p sysroot/scrap && cd sysroot/scrap && \
+	$(MKDIR_P) sysroot/scrap && cd sysroot/scrap && \
 	    git clone https://github.com/sourceruckus/awesome-powers.git && \
 	    cd awesome-powers && ./autogen.sh
 	$(CHROOT) apt clean
@@ -337,8 +341,23 @@ sysroot/.RUCKUS-ES-FINAL: sysroot/.RUCKUS-ES-3RDPARTY
 #        ruckus ppa)
 #
 es.sqsh: sysroot/.RUCKUS-ES-FINAL
-	umount -R $(dir $^)/{proc,sys,dev}
+	$(MAKE) sysroot-umount-vfs
 	mksquashfs $(dir $^) $@ -comp lz4 -Xhc -noappend -wildcards -e .RUCKUS*
+
+sysroot-es-clean:
+	$(MAKE) sysroot-umount-vfs
+	rm -rf sysroot
+
+sysroot-esfile-clean:
+	$(MAKE) sysroot-umount-vfs
+	umount -l sqsh_layer-es || echo not mounted
+	rm -rf sqsh_layer-es
+	umount -l upper_layer || echo not mounted
+	rm -rf upper_layer
+	umount -l sysroot || echo not mounted
+	rm -rf sysroot
+
+clean-local: sysroot-es-clean
 
 
 ################################################################################
@@ -383,6 +402,57 @@ PKGS_ESFILE += orthanc-wsi
 #systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
 #  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
 #  zfs.target
+
+
+# prepare an overlay mount on sysroot
+#
+# - mount es.sqsh on sqsh-es
+# - create sqsh-esfile directories
+# - overlayfs on sysroot
+#
+# FIXME: if i make this depend on es.sqsh, but sysroot/.RUCKUS-ES-FINAL doesn't
+#        exist, it'll rebuild es.sqsh... and we remove that file as part of
+#        sysroot-es-clean and exclude it from the sqsh image...  perhaps we
+#        should put those files somewhere else?
+#
+# FIXME: my build box is using zfs, which can't be used for the upper layer.
+#        oopsie.  for now lets use a 2G tmpfs mount and see how that goes.
+#        long term, we should check for an appropriate fs via configure and add
+#        --with-tmpfs-upper=SIZE argument.
+#
+sqsh_layer-es: es.sqsh
+	$(MKDIR_P) $@
+	mount $< $@
+
+upper_layer:
+	$(MKDIR_P) $@
+	mount -t tmpfs none $@
+
+sysroot/.RUCKUS-ESFILE-OVL:  sqsh_layer-es upper_layer
+	$(MAKE) sysroot-es-clean
+	$(MKDIR_P) sysroot upper_layer/{upper,work}
+	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
+	touch $@
+
+# apt install
+sysroot/.RUCKUS-ESFILE-APT: sysroot/.RUCKUS-ESFILE-OVL
+	$(MAKE) sysroot-mount-vfs
+	cp debconf-config.dat sysroot/var/cache/debconf/config.dat
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ESFILE)
+	touch $@
+
+# service enable/dislabe, tweaks, etc
+sysroot/.RUCKUS-ESFILE-FINAL: sysroot/.RUCKUS-ESFILE-APT
+	$(MAKE) sysroot-mount-vfs
+	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
+	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
+	  zfs.target
+	touch $@
+
+# mksquashfs
+es-file.sqsh: sysroot/.RUCKUS-ESFILE-FINAL
+#	$(MAKE) sysroot-umount-vfs
+#	mksquashfs $(dir $^) $@ -comp lz4 -Xhc -noappend -wildcards -e .RUCKUS*
 
 
 ################################################################################
