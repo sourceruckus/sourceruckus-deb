@@ -307,6 +307,8 @@ PKGS_ES_3RDPARTY += microcodenator
 # NOTE: We create globally-managed-devices.conf because all interfaces end up
 #       "unmanaged" in NetworkManager w/out it.
 #
+# FIXME: should really move awesome-powers to /opt
+#
 .build/RUCKUS-ES-FINAL: .build/RUCKUS-ES-3RDPARTY
 	$(MAKE) sysroot-mount-vfs
 	echo "rootfs / auto defaults 0 0" > sysroot/etc/fstab
@@ -340,7 +342,9 @@ sysroot-esfile-clean:
 	umount -l sysroot || echo not mounted
 	rm -rf sysroot
 
-clean-local: sysroot-es-clean
+clean-local: sysroot-es-clean sysroot-esfile-clean
+	rm -rf .build
+
 
 
 ################################################################################
@@ -351,14 +355,6 @@ clean-local: sysroot-es-clean
 # NOTE: This image includes upstream Wine (including full 32bit library
 #       support) so you can run Windows junk.  For example, at the vet hospital
 #       we run AVImarkServer.
-#
-# FIXME: todo
-#
-# - setup overlay w/ es.sqsh
-# - enable 32bit libs across the board
-# - apt
-#   - gcc-multilib (?) (85M)
-#   - wine (via upstream ppa)
 #
 PKGS_ESFILE =
 PKGS_ESFILE += nfs-kernel-server
@@ -381,21 +377,20 @@ PKGS_ESFILE += orthanc-imagej
 PKGS_ESFILE += orthanc-webviewer
 PKGS_ESFILE += orthanc-wsi
 
-
 # prepare an overlay mount on sysroot
-#
-# - mount es.sqsh on sqsh-es
-# - create sqsh-esfile directories
-# - overlayfs on sysroot
 #
 # FIXME: my build box is using zfs, which can't be used for the upper layer.
 #        oopsie.  for now lets use a 2G tmpfs mount and see how that goes.
 #        long term, we should check for an appropriate fs via configure and add
 #        --with-tmpfs-upper=SIZE argument.
 #
-sqsh_layer-es: es.sqsh
+# FIXME: shoot, making this depend on es.sqsh seems to be messing things up.
+#        if sqsh_layer-es already exists, make is still executing this
+#        rule... did i dork up a timestamp or something?
+#
+sqsh_layer-es:
 	$(MKDIR_P) $@
-	mount $< $@
+	mount es.sqsh $@
 
 upper_layer:
 	$(MKDIR_P) $@
@@ -410,15 +405,28 @@ upper_layer:
 # apt install
 .build/RUCKUS-ESFILE-APT: .build/RUCKUS-ESFILE-OVL
 	$(MAKE) sysroot-mount-vfs
-	cp debconf-config.dat sysroot/var/cache/debconf/config.dat
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ESFILE)
+	touch $@
+
+# add 32bit architecture support
+.build/RUCKUS-ESFILE-32bit: .build/RUCKUS-ESFILE-APT
+	$(MAKE) sysroot-mount-vfs
+	$(CHROOT) dpkg --add-architecture i386
+	$(CHROOT) apt update
+	touch $@
+
+# special install block for wine because we ONLY want to specify
+# --install-recommends for wine
+.build/RUCKUS-ESFILE-WINE: .build/RUCKUS-ESFILE-32bit
+	$(MAKE) sysroot-mount-vfs
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends winehq-stable
 	touch $@
 
 # service enable/dislabe, tweaks, etc
 #
 # FIXME: zfs services aren't enabled by default... did i do that on purpose?
 #
-.build/RUCKUS-ESFILE-FINAL: .build/RUCKUS-ESFILE-APT
+.build/RUCKUS-ESFILE-FINAL: .build/RUCKUS-ESFILE-WINE
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
 	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
@@ -427,8 +435,8 @@ upper_layer:
 
 # mksquashfs
 es-file.sqsh: .build/RUCKUS-ESFILE-FINAL
-#	$(MAKE) sysroot-umount-vfs
-#	mksquashfs sysroot $@ -comp lz4 -Xhc -noappend -wildcards
+	$(MAKE) sysroot-umount-vfs
+	mksquashfs sysroot $@ -comp lz4 -Xhc -noappend -wildcards
 
 
 ################################################################################
@@ -489,11 +497,12 @@ PKGS_VMM += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
 # Based off VMM (which exludes ES-file and ES-web additions), adds everything
 # else we want in an awesome workstation of doom (including the kitchen sink).
 #
-# NOTE: Similar to ES-web, we want a full multilib setup with upstream Wine for
+# NOTE: Similar to ES-file, we want a full multilib setup with upstream Wine for
 #       the Workstation.
 #
 # - 32bit update
 # - via apt
+#   - gcc-multilib (?) (85M?)
 #   - ubuntu-desktop (maybe exclude a few pkgs?)
 #   - wireshark gkrellm gitk git-gui
 #   - emacs-gtk (replaces emacs-nox)

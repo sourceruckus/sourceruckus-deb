@@ -3,6 +3,9 @@
 /FOO
 /.build
 /sysroot
+/sqsh_layer-es
+/sqsh_layer-esfile
+/upper_layer
 
 # autotools files
 Makefile
