@@ -223,6 +223,11 @@ sysroot/etc/apt/sources.list.d/grafana.list: .build/RUCKUS-ES-APT
 	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) apt-key add -
 	echo "deb https://packages.grafana.com/oss/deb stable main" > $@
 
+sysroot/etc/apt/sources.list.d/wine.list: .build/RUCKUS-ES-APT
+	$(MAKE) sysroot-mount-vfs
+	wget -qO- https://dl.winehq.org/wine-builds/winehq.key | $(CHROOT) apt-key add -
+	echo "deb https://dl.winehq.org/wine-builds/ubuntu focal main" > $@
+
 # FIXME: i added this to try and get boxes to be able to browse to my file
 #        server via file manager.  didn't seem to work as desired, and now
 #        there's a duplicate wsdd repo on github, so commenting this out for
@@ -279,11 +284,11 @@ PKGS_ES_3RDPARTY += extractenator
 PKGS_ES_3RDPARTY += firmwarenator
 PKGS_ES_3RDPARTY += microcodenator
 
-
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/sourceruckus.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/influxdb.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/grafana.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
+.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/wine.list
 .build/RUCKUS-ES-3RDPARTY: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) apt update
@@ -518,7 +523,6 @@ PKGS_VMM += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
 #   - stupid autoupdate gui notification thing
 #   - snapd?
 #
-.build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/wine.list
 .build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/qgis.list
 .build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
 
