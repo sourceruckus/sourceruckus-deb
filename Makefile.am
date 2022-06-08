@@ -14,9 +14,9 @@ EXTRA_DIST += $(top_docs)
 # - Prepare a new upper layer
 # - Overlay-mount layers on sysroot for next image stage
 #
-# FIXME: consider using tmpfs for build dir(s).  makes cleaning them
-#        out pretty easy, as you just unmount... but we'd be requiring
-#        a bit more RAM (probably an extra 2G or so to be safe).
+# FIXME: consider using tmpfs for build dir(s).  makes cleaning them out pretty
+#        easy, as you just unmount... but we'd be requiring a bit more RAM
+#        (probably an extra 2G or so to be safe).
 #
 CHROOT=chroot sysroot /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH
 
@@ -48,14 +48,14 @@ sysroot/dev/block:
 ################################################################################
 # ES (base)
 #
-# This is going to be used for most of our domUs.  Should include
-# what's needed for srv-router, srv-net, srv-auth.
+# This is going to be used for most of our domUs.  Should include what's needed
+# for srv-router, srv-net, srv-auth.
 #
-# FIXME: we could split srv-auth's extra stuff into ES-auth if we
-#        really want... but it strikes me as overkill.  It's really
-#        just the difference between including the samba package or
-#        not (~45M).  That would also make our base image unable to export
-#        files via smbd, but that might be fine.
+# FIXME: we could split srv-auth's extra stuff into ES-auth if we really
+#        want... but it strikes me as overkill.  It's really just the
+#        difference between including the samba package or not (~45M).  That
+#        would also make our base image unable to export files via smbd, but
+#        that might be fine.
 #
 sysroot-mount-vfs: sysroot/proc/self sysroot/sys/block sysroot/dev/block
 
@@ -95,10 +95,9 @@ PKGS_ES += bind9-host bind9-dnsutils net-tools
 PKGS_ES += vlan bridge-utils ifenslave
 PKGS_ES += postfix #(no config, use dpkg-reconfigre to tweak later)
 PKGS_ES += mailutils
-# FIXME: should we wait on lm-sensors fancontrol read-edid and
-#        i2c-tools until later?  the original intent here was for our
-#        ES.img to be for virtual machines, which would lack sensors
-#        and fans.
+# FIXME: should we wait on lm-sensors fancontrol read-edid and i2c-tools until
+#        later?  the original intent here was for our ES.img to be for virtual
+#        machines, which would lack sensors and fans.
 #
 PKGS_ES += zsh gkrellmd lm-sensors fancontrol read-edid i2c-tools
 PKGS_ES += git-email
@@ -132,10 +131,11 @@ PKGS_ES += sysstat
 PKGS_ES += nmap
 #PKGS_ES += ispell iamerican # FIXME: ispell vs aspell?
 #
-# FIXME: similar to -dev package note bellow...  we should at least
-#        consider leaving the compilation toolchain stuff out of ES
-#        hosts... it's not like we can't manually install it in some
-#        unforseen situation where we need it.
+# NOTE: We normally leave all these development packages until VMM or
+#       Workstation.  You only need them at this point if this is the first
+#       ever bootstrap build of a new release and we need to actually compile
+#       the Source Ruckus PPA packages.  If that's the case, add
+#       PKGS_COMPILATION to PKGS_ES for a test build and do your thing.
 #
 # compilation toolchain (~300M)
 PKGS_COMPILATION =
@@ -144,14 +144,6 @@ PKGS_COMPILATION += autoconf automake autopoint m4 libtool gettext pkg-config bi
 PKGS_COMPILATION += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc # (62M)
 PKGS_COMPILATION += yajl-tools
 PKGS_COMPILATION += dwarves # needed by kernel CONFIG_DEBUG_INFO_BTF
-# FIXME: should we leave all these -dev packages until VMM or
-#        Workstation...?  I only needed them at this point the first
-#        time through because I needed to be able to build up a clean
-#        20.04 host to initially populate the focal sourceruckus ppa.
-#        In the future, we could just build up temporary host to
-#        bootstrap around that chicken-and-the-egg problem... then we
-#        wouldn't have to manage updates for all these (and disk
-#        space) on all our ES hosts.
 #
 # add these in for ruckusrd subproject deps
 PKGS_COMPILATION += libkmod-dev libblkid-dev # for eudev
@@ -165,20 +157,18 @@ PKGS_COMPILATION += netpbm # for groff
 PKGS_COMPILATION += libncurses-dev libelf-dev
 # to build zfs deb packages
 #
-# NOTE: These things are required by the deb-utils target, which
-#       builds a bunch of RPMs and then converts them into DEBs.  The
-#       resulting packages are really only appropriate for a local apt
-#       install *.deb (because they don't do ANY dependency tracking).
-#       That's why I maintain special Makefile rules (based on
-#       ruckusrd's 'dpkg' target) to build a single zfs package with
-#       full dependency tracking.
+# NOTE: These things are required by the deb-utils target, which builds a bunch
+#       of RPMs and then converts them into DEBs.  The resulting packages are
+#       really only appropriate for a local apt install *.deb (because they
+#       don't do ANY dependency tracking).  That's why I maintain special
+#       Makefile rules (based on ruckusrd's 'dpkg' target) to build a single
+#       zfs package with full dependency tracking.
 #
-#       In other words, we don't really need alien, and we probably
-#       don't really need the two perl libs it required.  We probably
-#       don't need fakeroot, either.  But we DO need the rest of them
-#       (in order to compile OpenZFS later on), I haven't tested at
-#       all w/out those packages, we might eventually want them, and
-#       it's not really that much more to add.
+#       In other words, we don't really need alien, and we probably don't
+#       really need the two perl libs it required.  We probably don't need
+#       fakeroot, either.  But we DO need the rest of them (in order to compile
+#       OpenZFS later on), I haven't tested at all w/out those packages, we
+#       might eventually want them, and it's not really that much more to add.
 #
 PKGS_COMPILATION += alien libarchive-cpio-perl libmail-sendmail-perl
 PKGS_COMPILATION += libpython3-dev
@@ -188,18 +178,21 @@ PKGS_COMPILATION += python3-cffi
 PKGS_COMPILATION += python3-distlib python3-packaging
 PKGS_COMPILATION += fakeroot
 PKGS_COMPILATION += libudev-dev
+#
+# NOTE: As mentioned above, to add compilation toolchain and dev packages to
+#       es.sqsh, uncomment the following:
+#
+#PKGS_ES += $(PKGS_COMPILATION)
 
-# NOTE: We want apt install to be completely noninteractive with
-#       pre-seeded values for all debconf questions.  My initial idea
-#       was to run through interactively and then just copy the
-#       resulting debconf config.dat into subsequent runs, but reading
-#       online kinda implies that that's the "wrong" thing to do, and
-#       that I should use either DEBCONF_DB_FALLBACK or
-#       DEBCONF_DB_OVERRIDE variables (set to either Pipe or File) to
-#       supply values...  both of those methods were providing strange
-#       errors, though...  so I tried just copying config.dat in
-#       directly as I'd originally planned and it worked fine... so
-#       that's what I'm doing.
+# NOTE: We want apt install to be completely noninteractive with pre-seeded
+#       values for all debconf questions.  My initial idea was to run through
+#       interactively and then just copy the resulting debconf config.dat into
+#       subsequent runs, but reading online kinda implies that that's the
+#       "wrong" thing to do, and that I should use either DEBCONF_DB_FALLBACK
+#       or DEBCONF_DB_OVERRIDE variables (set to either Pipe or File) to supply
+#       values...  both of those methods were providing strange errors,
+#       though...  so I tried just copying config.dat in directly as I'd
+#       originally planned and it worked fine... so that's what I'm doing.
 #
 APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
 .build/RUCKUS-ES-APT: .build/RUCKUS-ES-APT-PREP
@@ -223,19 +216,18 @@ sysroot/etc/apt/sources.list.d/grafana.list: .build/RUCKUS-ES-APT
 	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) apt-key add -
 	echo "deb https://packages.grafana.com/oss/deb stable main" > $@
 
-# FIXME: i added this to try and get boxes to be able to browse to my
-# file server via file manager.  didn't seem to work as desired, and
-# now there's a duplicate wsdd repo on github, so commenting this out
-# for now
+# FIXME: i added this to try and get boxes to be able to browse to my file
+#        server via file manager.  didn't seem to work as desired, and now
+#        there's a duplicate wsdd repo on github, so commenting this out for
+#        now
 #
 #sysroot/etc/apt/sources.list.d/wsdd.list: .build/RUCKUS-ES-APT
 #	$(MAKE) sysroot-mount-vfs
 #	wget -qO- https://pkg.ltec.ch/public/conf/ltec-ag.gpg.key | $(CHROOT) apt-key add -
 #	echo "deb https://pkg.ltec.ch/public/ focal main" > $@
 
-# NOTE: We do this instead of using add-apt-repository to make things
-#	a bit more consistent in here and to avoid multiple apt update
-#	calls.
+# NOTE: We do this instead of using add-apt-repository to make things a bit
+#	more consistent in here and to avoid multiple apt update calls.
 sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) gpgconf --launch gpg-agent
@@ -248,31 +240,27 @@ sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 	$(CHROOT) gpgconf --kill all
 	echo "deb http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu focal main" > $@
 
-# NOTE: Definition of "3rd Party" in here is "upstream != Ubuntu".
-#       That means our own Source Ruckus PPA is considered "3rd
-#       Party".
+# NOTE: Definition of "3rd Party" in here is "upstream != Ubuntu".  That means
+#       our own Source Ruckus PPA is considered "3rd Party".
 #
-# NOTE: Regarding the chicken-and-the-egg of the Source Ruckus PPA
-#       while preping a distro-upgrade...  The easiest thing to do is
-#       manually take a detour and build required packages by hand
-#       instead of somehow detecting that need and automagically doing
-#       it via the build system.  I'm gonna have to re-investigate
-#       required packages and stuff by hand, there's no point in the
-#       added complexity required to "automagically" build things
-#       instead of installing.  So, after a 'make
-#       sysroot/.RUCKUS-ES-3RDPARTY' (which should fail because
-#       missing packages), manually chroot into the resulting system,
-#       build packages and upload them to our PPA.
+# NOTE: Regarding the chicken-and-the-egg of the Source Ruckus PPA while
+#       preping a distro-upgrade...  The easiest thing to do is manually take a
+#       detour and build required packages by hand instead of somehow detecting
+#       that need and automagically doing it via the build system.  I'm gonna
+#       have to re-investigate required packages and stuff by hand, there's no
+#       point in the added complexity required to "automagically" build things
+#       instead of installing.  So, after a 'make .build/RUCKUS-ES-3RDPARTY' (which
+#       should fail because missing packages), manually chroot into the
+#       resulting system, build packages and upload them to our PPA.
 #
-# NOTE: I'm including ruckusrd on ES even though I only intend to use
-#       it as a virtual machine so that we have the included dev
-#       scripts (e.g., doit, extractenator).  Also, I'm planning to
-#       add sqsh_layer maintenance functionality to ruckusrd, which
-#       we'll want on all the layers.
+# NOTE: I'm including ruckusrd on ES even though I only intend to use it as a
+#       virtual machine so that we have the included dev scripts (e.g., doit,
+#       extractenator).  Also, I'm planning to add sqsh_layer maintenance
+#       functionality to ruckusrd, which we'll want on all the layers.
 #
-# NOTE: We prep the PPAs for the ES-file and ES-web additions now, so
-#       that we can easily apt install things for testing and
-#       corner-cases (e.g. combined file/web server).
+# NOTE: We prep the PPAs for the ES-file and ES-web additions now, so that we
+#       can easily apt install things for testing and corner-cases
+#       (e.g. combined file/web server).
 #
 PKGS_ES_3RDPARTY =
 PKGS_ES_3RDPARTY += telegraf #(135M! didn't realize it was that large)
@@ -295,33 +283,33 @@ PKGS_ES_3RDPARTY += microcodenator
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES_3RDPARTY)
 	touch $@
 
-# the finalization step - set default boot target, disable some
-# services, tweak some files, etc.
+# the finalization step - set default boot target, disable some services, tweak
+# some files, etc.
 #
-# NOTE: We clone awesome-powers and prep it's submodules in here, so
-#       that it's available if we're installing w/out an internet
-#       connection later on.
+# NOTE: We clone awesome-powers and prep it's submodules in here, so that it's
+#       available if we're installing w/out an internet connection later on.
 #
-# NOTE: We do NOT create local users here.  That's handled by
-#       awesome-powers during installation/groom.
+# NOTE: We do NOT create local users here.  That's handled by awesome-powers
+#       during installation/groom.
 #
 # NOTE: We change UID_MIN and GID_MIN to 500 in /etc/login.defs
-#       accross-the-board to differentiate local users from krb5
-#       users.  Otherwise, if krb server is unreachable, it takes a
-#       few minutes to authenticate local users.
+#       accross-the-board to differentiate local users from krb5 users.
+#       Otherwise, if krb server is unreachable, it takes a few minutes to
+#       authenticate local users.
 #
-# FIXME: blast, that doesn't quite do what i want because tons of
-#        packages assume that ubuntu has this set to 1000...  gkrellmd
-#        and telegraf have added users 999 and 989, so useradd starts
-#        at 1000 anyways.  I was trying to do that instead of sedding
-#        things into the pam config files because then subsequent apt
-#        upgrades will ask what to do with local changes...
+# FIXME: blast, that doesn't quite do what i want because tons of packages
+#        assume that ubuntu has this set to 1000...  gkrellmd and telegraf have
+#        added users 999 and 989, so useradd starts at 1000 anyways.  I was
+#        trying to do that instead of sedding things into the pam config files
+#        because then subsequent apt upgrades will ask what to do with local
+#        changes...
 #
-#        actually, i wonder if i had changed it to 500 way back after
-#        the debootstrap invocation things would have gone better...?
+#        actually, i wonder if i had changed it to 500 way back after the
+#        debootstrap invocation things would have gone better...?
 #
-# NOTE: We create globally-managed-devices.conf because all interfaces
-#       end up "unmanaged" in NetworkManager w/out it.
+#
+# NOTE: We create globally-managed-devices.conf because all interfaces end up
+#       "unmanaged" in NetworkManager w/out it.
 #
 .build/RUCKUS-ES-FINAL: .build/RUCKUS-ES-3RDPARTY
 	$(MAKE) sysroot-mount-vfs
@@ -336,10 +324,9 @@ PKGS_ES_3RDPARTY += microcodenator
 	$(CHROOT) systemctl disable dnsmasq
 	touch $@
 
-# FIXME: migrate to -comp zstd.  Ubuntu 18.04's squashfs doesn't
-#        support it, but we could always compile our own in /usr/local
-#        or something. (or provide a newer bionic deb via source
-#        ruckus ppa)
+# FIXME: migrate to -comp zstd.  Ubuntu 18.04's squashfs doesn't support it,
+#        but we could always compile our own in /usr/local or something. (or
+#        provide a newer bionic deb via source ruckus ppa)
 #
 es.sqsh: .build/RUCKUS-ES-FINAL
 	$(MAKE) sysroot-umount-vfs
@@ -366,9 +353,9 @@ clean-local: sysroot-es-clean
 #
 # Based on ES, adds file-server specific packages.
 #
-# NOTE: This image includes upstream Wine (including full 32bit
-#       library support) so you can run Windows junk.  For example, at
-#       the vet hospital we run AVImarkServer.
+# NOTE: This image includes upstream Wine (including full 32bit library
+#       support) so you can run Windows junk.  For example, at the vet hospital
+#       we run AVImarkServer.
 #
 # FIXME: todo
 #
@@ -398,11 +385,6 @@ PKGS_ESFILE += orthanc-imagej
 #PKGS_ESFILE += orthanc-postgresql
 PKGS_ESFILE += orthanc-webviewer
 PKGS_ESFILE += orthanc-wsi
-#FIXME: zfs services aren't enabled by default... did i do that on purpose?
-#
-#systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
-#  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
-#  zfs.target
 
 
 # prepare an overlay mount on sysroot
@@ -410,11 +392,6 @@ PKGS_ESFILE += orthanc-wsi
 # - mount es.sqsh on sqsh-es
 # - create sqsh-esfile directories
 # - overlayfs on sysroot
-#
-# FIXME: if i make this depend on es.sqsh, but sysroot/.RUCKUS-ES-FINAL doesn't
-#        exist, it'll rebuild es.sqsh... and we remove that file as part of
-#        sysroot-es-clean and exclude it from the sqsh image...  perhaps we
-#        should put those files somewhere else?
 #
 # FIXME: my build box is using zfs, which can't be used for the upper layer.
 #        oopsie.  for now lets use a 2G tmpfs mount and see how that goes.
@@ -443,6 +420,9 @@ upper_layer:
 	touch $@
 
 # service enable/dislabe, tweaks, etc
+#
+# FIXME: zfs services aren't enabled by default... did i do that on purpose?
+#
 .build/RUCKUS-ESFILE-FINAL: .build/RUCKUS-ESFILE-APT
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
@@ -471,10 +451,10 @@ PKGS_ESWEB += grafana # upstream ppa added already
 ### You can start grafana-server by executing
 # sudo /bin/systemctl start grafana-server
 
-# FIXME: Considered adding the unifi deb to my ppa... but I'm pretty
-#        sure it adds it's own ppa as upstream for updates, so that's
-#        probably a bad idea.  Instead, we'll have a list of local
-#        .debs to install (and rules to download them via wget).
+# FIXME: Considered adding the unifi deb to my ppa... but I'm pretty sure it
+#        adds it's own ppa as upstream for updates, so that's probably a bad
+#        idea.  Instead, we'll have a list of local .debs to install (and rules
+#        to download them via wget).
 #
 PKGS_ESWEB_LOCAL =
 PKGS_ESWEB_LOCAL += unifi
@@ -483,10 +463,10 @@ PKGS_ESWEB_LOCAL += unifi
 ################################################################################
 # VMM (Xen Dom0)
 #
-# Based on ES, not ES-file or ES-web, adds things needed for our VMM
-# setup.  This is the first layer that is intended for use on physical
-# hardware (i.e., not a virtual machine), so it's where we start to
-# add in bootloader and more hardware-centric things.
+# Based on ES, not ES-file or ES-web, adds things needed for our VMM setup.
+# This is the first layer that is intended for use on physical hardware (i.e.,
+# not a virtual machine), so it's where we start to add in bootloader and more
+# hardware-centric things.
 #
 # - apt
 #   - efibootmgr
@@ -502,8 +482,8 @@ PKGS_ESWEB_LOCAL += unifi
 PKGS_VMM =
 PKGS_VMM += drbd-utils # from previously added upstream ppa
 PKGS_VMM += $(PKGS_ZFS)
-# FIXME: might now want/need these until workstation... not sure why I
-#        stuck them in VMM.
+# FIXME: might now want/need these until workstation... not sure why I stuck
+#        them in VMM.
 PKGS_VMM += groff ghostscript imagemagick libpaper1 netpbm psutils
 PKGS_VMM += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
 
@@ -511,12 +491,11 @@ PKGS_VMM += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
 ################################################################################
 # Workstation
 #
-# Based off VMM (which exludes ES-file and ES-web additions), adds
-# everything else we want in an awesome workstation of doom (including
-# the kitchen sink).
+# Based off VMM (which exludes ES-file and ES-web additions), adds everything
+# else we want in an awesome workstation of doom (including the kitchen sink).
 #
-# NOTE: Similar to ES-web, we want a full multilib setup with upstream
-#       Wine for the Workstation.
+# NOTE: Similar to ES-web, we want a full multilib setup with upstream Wine for
+#       the Workstation.
 #
 # - 32bit update
 # - via apt
@@ -555,9 +534,9 @@ PKGS_VMM += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
 
 PKGS_WORKSTATION =
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
-# FIXME: are these included by ubuntu-desktop?  i thought they
-#        were... but apt show va-driver-all lists all the variants of
-#        ubuntu-desktop except the main one.
+# FIXME: are these included by ubuntu-desktop?  i thought they were... but apt
+#        show va-driver-all lists all the variants of ubuntu-desktop except the
+#        main one.
 PKGS_WORKSTATION += va-driver-all vdpau-driver-all
 
 
