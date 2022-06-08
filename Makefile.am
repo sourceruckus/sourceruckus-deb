@@ -26,11 +26,18 @@ all: es.sqsh es-file.sqsh es-web.sqsh vmm.sqsh workstation.sqsh
 
 # stage1 - 340M
 #
-# FIXME: tweak UID_MIN and GID_MIN before proceeding
+# NOTE: We change UID_MIN and GID_MIN to 500 in /etc/login.defs
+#       accross-the-board to differentiate local users from krb5 users.
+#       Otherwise, if krb server is unreachable, it takes a few minutes to
+#       authenticate local users.  We have to make this change as early as
+#       possible to keep apt install from adding users with uid higher than 500
+#       (i.e., if we wait until "finalization" of es.sqsh, it's too late -
+#       we've got gkrellmd and telegraf as 999 and 998).
 #
 .build/RUCKUS-DEBOOTSTRAP:
 	$(MKDIR_P) $(dir $@)
 	debootstrap --arch=amd64 focal sysroot http://archive.ubuntu.com/ubuntu/
+	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
 	touch $@
 
 sysroot/proc/self:
@@ -292,28 +299,11 @@ PKGS_ES_3RDPARTY += microcodenator
 # NOTE: We do NOT create local users here.  That's handled by awesome-powers
 #       during installation/groom.
 #
-# NOTE: We change UID_MIN and GID_MIN to 500 in /etc/login.defs
-#       accross-the-board to differentiate local users from krb5 users.
-#       Otherwise, if krb server is unreachable, it takes a few minutes to
-#       authenticate local users.
-#
-# FIXME: blast, that doesn't quite do what i want because tons of packages
-#        assume that ubuntu has this set to 1000...  gkrellmd and telegraf have
-#        added users 999 and 989, so useradd starts at 1000 anyways.  I was
-#        trying to do that instead of sedding things into the pam config files
-#        because then subsequent apt upgrades will ask what to do with local
-#        changes...
-#
-#        actually, i wonder if i had changed it to 500 way back after the
-#        debootstrap invocation things would have gone better...?
-#
-#
 # NOTE: We create globally-managed-devices.conf because all interfaces end up
 #       "unmanaged" in NetworkManager w/out it.
 #
 .build/RUCKUS-ES-FINAL: .build/RUCKUS-ES-3RDPARTY
 	$(MAKE) sysroot-mount-vfs
-	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
 	echo "rootfs / auto defaults 0 0" > sysroot/etc/fstab
 	touch sysroot/etc/NetworkManager/conf.d/10-globally-managed-devices.conf
 	$(MKDIR_P) sysroot/scrap && cd sysroot/scrap && \
