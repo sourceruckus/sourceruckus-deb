@@ -368,14 +368,15 @@ PKGS_ZFS += sanoid # ubuntu ppa, but now using our zfs package
 PKGS_ESFILE += $(PKGS_ZFS)
 PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin librsvg2-common libbdplus0
 #PKGS_ESFILE += wsdd # from upstream ppa # FIXME: see FIXME above
+# FIXME: is the orthanc stuff going to need apache2?
 PKGS_ESFILE += orthanc
 PKGS_ESFILE += orthanc-dicomweb
-PKGS_ESFILE += orthanc-doc
-PKGS_ESFILE += orthanc-imagej
+PKGS_ESFILE += orthanc-doc javascript-common
+#PKGS_ESFILE += orthanc-imagej mesa-vulkan-drivers libatk-wrapper-java-jni fonts-dejavu-extra
 #PKGS_ESFILE += orthanc-mysql
 #PKGS_ESFILE += orthanc-postgresql
 PKGS_ESFILE += orthanc-webviewer
-PKGS_ESFILE += orthanc-wsi
+PKGS_ESFILE += orthanc-wsi libopenslide0
 
 # prepare an overlay mount on sysroot
 #
@@ -446,6 +447,7 @@ es-file.sqsh: .build/RUCKUS-ESFILE-FINAL
 #
 PKGS_ESWEB =
 PKGS_ESWEB += apache2 ssl-cert
+PKGS_ESWEB += javascript-common
 PKGS_ESWEB += influxdb2 # upstream ppa added already
 PKGS_ESWEB += grafana # upstream ppa added already
 ### NOT starting on installation, please execute the following statements to configure grafana to start automatically using systemd
@@ -485,10 +487,6 @@ PKGS_ESWEB_LOCAL += unifi
 PKGS_VMM =
 PKGS_VMM += drbd-utils # from previously added upstream ppa
 PKGS_VMM += $(PKGS_ZFS)
-# FIXME: might now want/need these until workstation... not sure why I stuck
-#        them in VMM.
-PKGS_VMM += groff ghostscript imagemagick libpaper1 netpbm psutils
-PKGS_VMM += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
 
 
 ################################################################################
@@ -537,10 +535,16 @@ PKGS_VMM += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
 
 PKGS_WORKSTATION =
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
+PKGS_WORKSTATION += gcc-multilib
+PKGS_WORKSTATION += nfs-kernel-server
+PKGS_WORKSTATION += groff ghostscript imagemagick libpaper1 netpbm psutils
+PKGS_WORKSTATION += minidlna libaacs0 libgdk-pixbuf2.0-bin librsvg2-common libbdplus0
+PKGS_WORKSTATION += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
 # FIXME: are these included by ubuntu-desktop?  i thought they were... but apt
 #        show va-driver-all lists all the variants of ubuntu-desktop except the
 #        main one.
 PKGS_WORKSTATION += va-driver-all vdpau-driver-all
+PKGS_WORKSTATION += mesa-vulkan-drivers
 
 
 
