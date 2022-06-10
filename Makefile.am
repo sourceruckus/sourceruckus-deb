@@ -333,7 +333,7 @@ sysroot-es-clean:
 	$(MAKE) sysroot-umount-vfs
 	rm -rf sysroot
 
-sysroot-esfile-clean:
+sysroot-esfile-clean sysroot-esweb-clean:
 	$(MAKE) sysroot-umount-vfs
 	umount -l sqsh_layer-es || echo not mounted
 	rm -rf sqsh_layer-es
@@ -397,8 +397,7 @@ upper_layer:
 	$(MKDIR_P) $@
 	mount -t tmpfs none $@
 
-.build/RUCKUS-ESFILE-OVL:  sqsh_layer-es upper_layer
-	$(MAKE) sysroot-es-clean
+.build/RUCKUS-ESFILE-OVL: sysroot-es-clean sqsh_layer-es upper_layer
 	$(MKDIR_P) sysroot upper_layer/{upper,work}
 	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
@@ -427,6 +426,8 @@ upper_layer:
 #
 # FIXME: zfs services aren't enabled by default... did i do that on purpose?
 #
+# FIXME: audit services
+#
 .build/RUCKUS-ESFILE-FINAL: .build/RUCKUS-ESFILE-WINE
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
@@ -448,13 +449,14 @@ es-file.sqsh: .build/RUCKUS-ESFILE-FINAL
 PKGS_ESWEB =
 PKGS_ESWEB += apache2 ssl-cert
 PKGS_ESWEB += javascript-common
-PKGS_ESWEB += influxdb2 # upstream ppa added already
+PKGS_ESWEB += influxdb2 influxdb2-cli # upstream ppa added already
 PKGS_ESWEB += grafana # upstream ppa added already
 ### NOT starting on installation, please execute the following statements to configure grafana to start automatically using systemd
 # sudo /bin/systemctl daemon-reload
 # sudo /bin/systemctl enable grafana-server
 ### You can start grafana-server by executing
 # sudo /bin/systemctl start grafana-server
+PKGS_ESWEB += mongodb-server mongo-tools # for unifi
 
 # FIXME: Considered adding the unifi deb to my ppa... but I'm pretty sure it
 #        adds it's own ppa as upstream for updates, so that's probably a bad
@@ -463,6 +465,42 @@ PKGS_ESWEB += grafana # upstream ppa added already
 #
 PKGS_ESWEB_LOCAL =
 PKGS_ESWEB_LOCAL += unifi
+
+sysroot/tmp/unifi.deb:
+	wget -qO- https://dl.ui.com/unifi/7.1.66/unifi_sysvinit_all.deb > $@
+
+.build/RUCKUS-ESWEB-OVL: sysroot-esfile-clean sqsh_layer-es upper_layer
+	$(MKDIR_P) sysroot upper_layer/{upper,work}
+	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
+	touch $@
+
+# apt install
+.build/RUCKUS-ESWEB-APT: .build/RUCKUS-ESWEB-OVL
+	$(MAKE) sysroot-mount-vfs
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ESWEB)
+	touch $@
+
+# fetch debs and install locally
+#
+# FIXME: actually do this
+#
+# download each to /sysroot/tmp and install
+#
+.build/RUCKUS-ESWEB-LOCAL: .build/RUCKUS-ESWEB-APT
+	$(MAKE) sysroot-mount-vfs
+	touch $@
+
+# service enable/disable, tweaks, etc
+#
+# FIXME: audit services
+#
+.build/RUCKUS-ESWEB-FINAL: .build/RUCKUS-ESWEB-LOCAL
+	$(MAKE) sysroot-mount-vfs
+	touch $@
+
+es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
+	$(MAKE) sysroot-umount-vfs
+	mksquashfs upper_layer/upper $@ -comp lz4 -Xhc -noappend -wildcards
 
 
 ################################################################################
