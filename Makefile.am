@@ -397,7 +397,11 @@ upper_layer:
 	$(MKDIR_P) $@
 	mount -t tmpfs none $@
 
-.build/RUCKUS-ESFILE-OVL: sysroot-es-clean sqsh_layer-es upper_layer
+.build/RUCKUS-ES-CLEAN:
+	$(MAKE) sysroot-es-clean
+	touch $@
+
+.build/RUCKUS-ESFILE-OVL: .build/RUCKUS-ES-CLEAN sqsh_layer-es upper_layer
 	$(MKDIR_P) sysroot upper_layer/{upper,work}
 	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
@@ -465,11 +469,19 @@ PKGS_ESWEB += mongodb-server mongo-tools # for unifi
 #
 PKGS_ESWEB_LOCAL =
 PKGS_ESWEB_LOCAL += unifi
+#PKGS_ESWEB_LOCAL += chrome
 
 sysroot/tmp/unifi.deb:
 	wget -qO- https://dl.ui.com/unifi/7.1.66/unifi_sysvinit_all.deb > $@
 
-.build/RUCKUS-ESWEB-OVL: sysroot-esfile-clean sqsh_layer-es upper_layer
+sysroot/tmp/chrome.deb:
+	wget -qO- https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb > $@
+
+.build/RUCKUS-ESWEB-CLEAN:
+	$(MAKE) sysroot-esfile-clean
+	touch $@
+
+.build/RUCKUS-ESWEB-OVL: .build/RUCKUS-ESWEB-CLEAN sqsh_layer-es upper_layer
 	$(MKDIR_P) sysroot upper_layer/{upper,work}
 	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
@@ -481,13 +493,9 @@ sysroot/tmp/unifi.deb:
 	touch $@
 
 # fetch debs and install locally
-#
-# FIXME: actually do this
-#
-# download each to /sysroot/tmp and install
-#
-.build/RUCKUS-ESWEB-LOCAL: .build/RUCKUS-ESWEB-APT
+.build/RUCKUS-ESWEB-LOCAL: .build/RUCKUS-ESWEB-APT sysroot/tmp/unifi.deb
 	$(MAKE) sysroot-mount-vfs
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(patsubst %,/tmp/%.deb,$(PKGS_ESWEB_LOCAL))
 	touch $@
 
 # service enable/disable, tweaks, etc
