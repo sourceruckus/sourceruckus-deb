@@ -35,6 +35,7 @@ all: es.sqsh es-file.sqsh es-web.sqsh vmm.sqsh workstation.sqsh
 #       we've got gkrellmd and telegraf as 999 and 998).
 #
 .build/RUCKUS-DEBOOTSTRAP:
+	$(MAKE) sysroot-clean
 	$(MKDIR_P) $(dir $@)
 	debootstrap --arch=amd64 focal sysroot http://archive.ubuntu.com/ubuntu/
 	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
@@ -329,12 +330,14 @@ es.sqsh: .build/RUCKUS-ES-FINAL
 	$(MAKE) sysroot-umount-vfs
 	mksquashfs sysroot $@ -comp lz4 -Xhc -noappend -wildcards
 
-sysroot-es-clean:
+sysroot-clean:
 	$(MAKE) sysroot-umount-vfs
-	rm -rf sysroot
-
-sysroot-esfile-clean sysroot-esweb-clean:
-	$(MAKE) sysroot-umount-vfs
+	umount -l sqsh_layer-vmm || echo not mounted
+	rm -rf sqsh_layer-vmm
+	umount -l sqsh_layer-es-web || echo not mounted
+	rm -rf sqsh_layer-es-web
+	umount -l sqsh_layer-es-file || echo not mounted
+	rm -rf sqsh_layer-es-file
 	umount -l sqsh_layer-es || echo not mounted
 	rm -rf sqsh_layer-es
 	umount -l upper_layer || echo not mounted
@@ -342,7 +345,7 @@ sysroot-esfile-clean sysroot-esweb-clean:
 	umount -l sysroot || echo not mounted
 	rm -rf sysroot
 
-clean-local: sysroot-es-clean sysroot-esfile-clean
+clean-local: sysroot-clean
 	rm -rf .build
 
 
@@ -397,11 +400,11 @@ upper_layer:
 	$(MKDIR_P) $@
 	mount -t tmpfs none $@
 
-.build/RUCKUS-ES-CLEAN:
-	$(MAKE) sysroot-es-clean
+.build/RUCKUS-ESFILE-CLEAN:
+	$(MAKE) sysroot-clean
 	touch $@
 
-.build/RUCKUS-ESFILE-OVL: .build/RUCKUS-ES-CLEAN sqsh_layer-es upper_layer
+.build/RUCKUS-ESFILE-OVL: .build/RUCKUS-ESFILE-CLEAN sqsh_layer-es upper_layer
 	$(MKDIR_P) sysroot upper_layer/{upper,work}
 	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
@@ -478,7 +481,7 @@ sysroot/tmp/chrome.deb:
 	wget -qO- https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb > $@
 
 .build/RUCKUS-ESWEB-CLEAN:
-	$(MAKE) sysroot-esfile-clean
+	$(MAKE) sysroot-clean
 	touch $@
 
 .build/RUCKUS-ESWEB-OVL: .build/RUCKUS-ESWEB-CLEAN sqsh_layer-es upper_layer
