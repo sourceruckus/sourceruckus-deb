@@ -186,6 +186,38 @@ PKGS_COMPILATION += python3-cffi
 PKGS_COMPILATION += python3-distlib python3-packaging
 PKGS_COMPILATION += fakeroot
 PKGS_COMPILATION += libudev-dev
+# recommended at this point
+PKGS_COMPILATION += libalgorithm-merge-perl libfl-dev libc-dbg gdbserver
+PKGS_COMPILATION += libfile-fcntllock-perl libwww-perl libxml-sax-expat-perl
+PKGS_COMPILATION += ghostscript
+PKGS_COMPILATION += libalgorithm-diff-xs-perl fonts-droid-fallback
+PKGS_COMPILATION += libhtml-format-perl libpaper-utils libdata-dump-perl
+PKGS_COMPILATION += libhtml-form-perl libhttp-daemon-perl libmailtools-perl
+PKGS_COMPILATION += fonts-noto-mono libauthen-sasl-perl
+# suggested at this point (not all of them, just a select few)
+PKGS_COMPILATION += fonts-noto fonts-freefont-otf fonts-freefont-ttf
+PKGS_COMPILATION += fonts-texgyre ghostscript-x libdigest-hmac-perl
+PKGS_COMPILATION += libgssapi-perl libcrypt-ssleay-perl libauthen-ntlm-perl
+PKGS_COMPILATION += libxml-sax-expatxs-perl poppler-utils fonts-arphic-ukai
+PKGS_COMPILATION += fonts-arphic-uming fonts-nanum fonts-noto-cjk
+PKGS_COMPILATION += fonts-noto-cjk-extra fonts-noto-color-emoji fonts-noto-extra
+PKGS_COMPILATION += fonts-noto-ui-core fonts-noto-ui-extra fonts-noto-unhinted
+PKGS_COMPILATION += libmath-random-isaac-xs-perl
+
+
+
+#lintian autoconf-archive gnu-standards autoconf-doc binutils-doc bison-doc distcc cmake-doc doc-base cpp-doc gcc-9-locales dh-make rpm-i18n \
+ debian-keyring flex-doc gcc-doc gdb-doc gettext-doc libasprintf-dev libgettextpo-dev \
+ glibc-doc bzr libtool-doc liblzma-doc ncurses-doc libssl-doc gfortran m4-doc libmail-box-perl python3-dev \
+ elfutils rpmlint texlive-base texlive-latex-base texlive-plain-generic \
+ texlive-fonts-recommended \
+python3-gpg libasync-mergepoint-perl libsereal-perl libtest-fatal-perl libtest-refcount-perl javascript-common libdigest-bubblebabble-perl \
+  libnet-dns-sec-perl libnet-libidn-perl libperl4-corelibs-perl libpackage-stash-xs-perl libref-util-perl libtype-tiny-xs-perl libperlio-gzip-perl \
+  python3-launchpadlib python3-github python3-gitlab appstream-util python3-enchant python3-magic lmodern dvisvgm tex-gyre tipa libfile-mimeinfo-perl \
+  libnet-dbus-perl libx11-protocol-perl x11-utils x11-xserver-utils \
+enchant-2 libgdk-pixbuf2.0-bin hunspell-en-us  libreadonly-perl libref-util-xs-perl mesa-vulkan-drivers \
+  libtie-ixhash-perl libxml-xpathengine-perl libxml-xpath-perl
+
 #
 # NOTE: As mentioned above, to add compilation toolchain and dev packages to
 #       es.sqsh, uncomment the following:
@@ -573,6 +605,12 @@ vmm.sqsh: .build/RUCKUS-VMM-FINAL
 	$(MAKE) sysroot-umount-vfs
 	mksquashfs upper_layer/upper $@ -comp lz4 -Xhc -noappend -wildcards
 
+# special target for adding compilation toolchain to an already
+# prepped sysroot
+sysroot-add-compilation:
+	$(MAKE) sysroot-mount-vfs
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_COMPILATION)
+
 
 ################################################################################
 # Workstation
@@ -620,7 +658,7 @@ vmm.sqsh: .build/RUCKUS-VMM-FINAL
 
 PKGS_WORKSTATION =
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
-PKGS_WORKSTATION += gcc-multilib
+PKGS_WORKSTATION += gcc-multilib g++-multilib gfortran-multilib
 PKGS_WORKSTATION += nfs-kernel-server
 PKGS_WORKSTATION += groff ghostscript imagemagick libpaper1 netpbm psutils
 PKGS_WORKSTATION += minidlna libaacs0 libgdk-pixbuf2.0-bin librsvg2-common libbdplus0
