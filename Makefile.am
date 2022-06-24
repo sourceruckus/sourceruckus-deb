@@ -527,7 +527,7 @@ es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
 #   - syslinux extlinux isolinux
 #   - ntfs3g?
 #   - fwupd
-#   - dkms
+#   - dkms? (probably wait until we have compiler for that)
 #   - smartmontools
 #   - drbd9 (should I wait until here and use upstream ppa?)
 # - compile/apt
@@ -536,6 +536,42 @@ es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
 PKGS_VMM =
 PKGS_VMM += drbd-utils # from previously added upstream ppa
 PKGS_VMM += $(PKGS_ZFS)
+PKGS_VMM += syslinux syslinux-common dosfstools extlinux isolinux syslinux-efi syslinux-legacy syslinux-utils
+PKGS_VMM += efibootmgr
+PKGS_VMM += efitools efivar
+PKGS_VMM += fwupdate
+PKGS_VMM += smartmontools
+
+# FIXME: this is our built xen package... go build it.
+#
+#PKGS_VMM += xen
+
+.build/RUCKUS-VMM-CLEAN:
+	$(MAKE) sysroot-clean
+	touch $@
+
+.build/RUCKUS-VMM-OVL: .build/RUCKUS-VMM-CLEAN sqsh_layer-es upper_layer
+	$(MKDIR_P) sysroot upper_layer/{upper,work}
+	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
+	touch $@
+
+# apt install
+.build/RUCKUS-VMM-APT: .build/RUCKUS-VMM-OVL
+	$(MAKE) sysroot-mount-vfs
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_VMM)
+	touch $@
+
+# service enable/disable, tweaks, etc
+#
+# FIXME: audit services
+#
+.build/RUCKUS-VMM-FINAL: .build/RUCKUS-VMM-APT
+	$(MAKE) sysroot-mount-vfs
+	touch $@
+
+vmm.sqsh: .build/RUCKUS-VMM-FINAL
+	$(MAKE) sysroot-umount-vfs
+	mksquashfs upper_layer/upper $@ -comp lz4 -Xhc -noappend -wildcards
 
 
 ################################################################################
