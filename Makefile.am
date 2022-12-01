@@ -263,13 +263,19 @@ sysroot/etc/apt/sources.list.d/wine.list: .build/RUCKUS-ES-APT
 
 # FIXME: i added this to try and get boxes to be able to browse to my file
 #        server via file manager.  didn't seem to work as desired, and now
-#        there's a duplicate wsdd repo on github, so commenting this out for
-#        now
+#        there's a duplicate wsdd repo on github...
 #
-#sysroot/etc/apt/sources.list.d/wsdd.list: .build/RUCKUS-ES-APT
-#	$(MAKE) sysroot-mount-vfs
-#	wget -qO- https://pkg.ltec.ch/public/conf/ltec-ag.gpg.key | $(CHROOT) apt-key add -
-#	echo "deb https://pkg.ltec.ch/public/ focal main" > $@
+#        https://github.com/christgau/wsdd (the one i was using)
+#        https://github.com/KoynovStas/wsdd (doesn't look as active)
+#
+#        actually, the win11 laptop at home can see my file server... i think
+#        because i installed wsdd?  the linux boxes can't browse to it, though
+#        (at least, not my 18.04 laptop).
+#
+sysroot/etc/apt/sources.list.d/wsdd.list: .build/RUCKUS-ES-APT
+	$(MAKE) sysroot-mount-vfs
+	wget -qO- https://pkg.ltec.ch/public/conf/ltec-ag.gpg.key | $(CHROOT) apt-key add -
+	echo "deb https://pkg.ltec.ch/public/ focal main" > $@
 
 # NOTE: We do this instead of using add-apt-repository to make things a bit
 #	more consistent in here and to avoid multiple apt update calls.
@@ -321,6 +327,7 @@ PKGS_ES_3RDPARTY += microcodenator
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/influxdb.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/grafana.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
+.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/wsdd.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/wine.list
 .build/RUCKUS-ES-3RDPARTY: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
@@ -402,7 +409,7 @@ PKGS_ZFS += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
 PKGS_ZFS += sanoid # ubuntu ppa, but now using our zfs package
 PKGS_ESFILE += $(PKGS_ZFS)
 PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin librsvg2-common libbdplus0
-#PKGS_ESFILE += wsdd # from upstream ppa # FIXME: see FIXME above
+PKGS_ESFILE += wsdd # from upstream ppa # FIXME: see FIXME above
 # FIXME: is the orthanc stuff going to need apache2?
 PKGS_ESFILE += orthanc
 PKGS_ESFILE += orthanc-dicomweb
