@@ -291,6 +291,18 @@ sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 	$(CHROOT) gpgconf --kill all
 	echo "deb http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu focal main" > $@
 
+sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
+	$(MAKE) sysroot-mount-vfs
+	$(CHROOT) gpgconf --launch gpg-agent
+	$(CHROOT) gpg --ignore-time-conflict --no-options --no-default-keyring \
+	    --secret-keyring /etc/apt/secring.gpg \
+	    --trustdb-name /etc/apt/trustdb.gpg \
+	    --keyring /etc/apt/trusted.gpg \
+	    --keyserver keyserver.ubuntu.com \
+	    --recv 6B827C12C2D425E227EDCA75089EBE08314DF160
+	$(CHROOT) gpgconf --kill all
+	echo "deb https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu focal main " > $@
+
 # NOTE: Definition of "3rd Party" in here is "upstream != Ubuntu".  That means
 #       our own Source Ruckus PPA is considered "3rd Party".
 #
@@ -327,6 +339,7 @@ PKGS_ES_3RDPARTY += microcodenator
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/influxdb.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/grafana.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
+.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/ubuntu-gis.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/wsdd.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/wine.list
 .build/RUCKUS-ES-3RDPARTY: .build/RUCKUS-ES-APT
@@ -419,6 +432,8 @@ PKGS_ESFILE += orthanc-doc javascript-common
 #PKGS_ESFILE += orthanc-postgresql
 PKGS_ESFILE += orthanc-webviewer
 PKGS_ESFILE += orthanc-wsi libopenslide0
+PKGS_ESFILE += gmt gmt-dcw gmt-gshhg proj-bin #+315M
+#PKGS_ESFILE += mbsystem # FIXME: durp, UbuntuGIS dropped mbsystem in focal?
 
 # prepare an overlay mount on sysroot
 #
@@ -660,7 +675,7 @@ sysroot-add-compilation:
 #   - stupid autoupdate gui notification thing
 #   - snapd?
 #
-.build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/qgis.list
+.build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/qgis.list # FIXME: pure upstream or UbuntuGIS?
 .build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
 
 PKGS_WORKSTATION =
