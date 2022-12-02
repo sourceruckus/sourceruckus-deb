@@ -81,33 +81,71 @@ sysroot-umount-vfs:
 	touch $@
 
 # base list (pared down from ubuntu-server)
+#
+# This base package list is generated manually by reviewing the
+# packages that would be installed by ubuntu-server, removing some
+# stuff we don't want, and adding some stuff we do.  The resulting
+# image should be tiny and awesome.
+#
+# 1. apt install ubuntu-server [n]
+# 2. Review apps (skip over libs and python mods, remove initramfs
+#    stuff, remove vm/cloud stuff).
+# 3. apt install --no-install-recommends $PKGS_ES [n]
+# 4. Compare and contrast, try again until you like the list.
+#
+# Removed
+# - apparmor
+# - apport apport-symptoms
+# - bcache-tools
+# - busybox-initramfs
+# - byobu
+# - cloud-guest-utils cloud-initramfs-copymods cloud-initramfs-dyn-netconf
+# - cryptsetup-initramfs
+# - fonts-ubuntu-console
+# - fwupd fwupd-signed
+# - initramfs-tools initramfs-tools-bin initramfs-tools-core
+# - klibc-utils
+# - landscape-common
+# - lxd-agent-loader
+# - multipath-tools (pulled in initramfs stuff)
+# - open-vm-tools
+# - overlayroot
+# - pastebinit
+# - screen
+# - sg3-utils sg3-utils-udev (pulled in initramfs stuff)
+# - snapd
+# - tmux
+# - ubuntu-release-upgrader-core
+# - ubuntu-server
+# - update-manager-core update-notifier-common
+#
+# NOTE: utils to play with: kexec htop run-one sosreport zerofree
+#
 PKGS_ES =
-PKGS_ES += alsa-ucm-conf alsa-topology-conf at bc cpio curl dirmngr
-PKGS_ES += dbus-user-session dconf-gsettings-backend dconf-service dmeventd dmidecode dosfstools ethtool finalrd fuse gawk gdisk gettext-base gir1.2-packagekitglib-1.0 git git-man glib-networking glib-networking-common
-PKGS_ES += glib-networking-services gnupg gnupg-l10n gnupg-utils gpg gpg-agent gpg-wks-client gpg-wks-server gpgconf gpgsm groff-base gsettings-desktop-schemas iso-codes krb5-locales
-PKGS_ES += linux-base lshw lvm2 lz4
-PKGS_ES += mdadm ntfs-3g openssh-client packagekit packagekit-tools parted patch pci.ids pciutils perl perl-modules-5.30 pinentry-curses plymouth plymouth-theme-ubuntu-text policykit-1 publicsuffix
-PKGS_ES += software-properties-common sound-theme-freedesktop squashfs-tools thin-provisioning-tools
-PKGS_ES += tpm-udev udisks2 unattended-upgrades usb.ids usbutils vim vim-runtime xauth
+PKGS_ES += bc binutils binutils-common binutils-x86-64-linux-gnu bolt btrfs-progs cpio cryptsetup cryptsetup-bin curl
+PKGS_ES += dbus-user-session dirmngr dmeventd dmidecode dosfstools ethtool fdisk finalrd fuse3 gawk gdisk gettext-base gir1.2-packagekitglib-1.0 git git-man gnupg gnupg-l10n gnupg-utils gpg gpg-agent gpg-wks-client gpg-wks-server gpgconf gpgsm
+PKGS_ES += groff-base htop kpartx
+PKGS_ES += linux-base lshw lvm2 mdadm modemmanager motd-news-config needrestart
+PKGS_ES += ntfs-3g open-iscsi openssh-client packagekit packagekit-tools parted patch pci.ids pciutils perl perl-modules-5.34 pinentry-curses pkexec plymouth plymouth-theme-ubuntu-text policykit-1 polkitd pollinate publicsuffix
+PKGS_ES += run-one sbsigntool secureboot-db software-properties-common sosreport squashfs-tools tcl tcl8.6 thin-provisioning-tools tpm-udev
+PKGS_ES += udisks2 unattended-upgrades usb-modeswitch usb-modeswitch-data usb.ids vim vim-runtime xauth xfsprogs xz-utils zerofree zstd
 # additional things we want
-PKGS_ES += iptables crda
+PKGS_ES += lz4
+PKGS_ES += iptables
 PKGS_ES += network-manager
-PKGS_ES += iptables-persistent #(yes for saving rules, dpkg-reconfigure later?)
-PKGS_ES += tshark #(yes for non-root capture, dpkg-reconfigure wireshark-common later?)
+PKGS_ES += iptables-persistent #(yes for saving rules, dpkg-reconfigure later?) # jammy no config
+PKGS_ES += tshark #(yes for non-root capture, dpkg-reconfigure wireshark-common later?) # jammy no config
 PKGS_ES += openssh-server ntp sntp ncurses-term
 PKGS_ES += dnsmasq
 PKGS_ES += cifs-utils smbclient samba attr samba-dsdb-modules samba-vfs-modules
 PKGS_ES += keyutils winbind libnss-winbind libpam-winbind
 PKGS_ES += acl
+PKGS_ES += attr
 PKGS_ES += bind9-host bind9-dnsutils net-tools
 PKGS_ES += vlan bridge-utils ifenslave
-PKGS_ES += postfix #(no config, use dpkg-reconfigre to tweak later)
+PKGS_ES += postfix #(no config, use dpkg-reconfigre to tweak later) # jammy no config
 PKGS_ES += mailutils
-# FIXME: should we wait on lm-sensors fancontrol read-edid and i2c-tools until
-#        later?  the original intent here was for our ES.img to be for virtual
-#        machines, which would lack sensors and fans.
-#
-PKGS_ES += zsh gkrellmd lm-sensors fancontrol read-edid i2c-tools
+PKGS_ES += zsh gkrellmd
 PKGS_ES += git-email
 PKGS_ES += emacs-nox emacs-common-non-dfsg
 PKGS_ES += aspell aspell-en
@@ -123,7 +161,6 @@ PKGS_ES += traceroute
 PKGS_ES += tree
 PKGS_ES += zip unzip unrar
 PKGS_ES += xattr
-PKGS_ES += zstd
 PKGS_ES += krb5-user #(specified default realm, server (krb5), and pw server (krb5pw), use dpkg-reconfigure later?)
 PKGS_ES += libpam-krb5
 PKGS_ES += mosh
@@ -137,7 +174,6 @@ PKGS_ES += iotop
 PKGS_ES += sdparm
 PKGS_ES += sysstat
 PKGS_ES += nmap
-#PKGS_ES += ispell iamerican # FIXME: ispell vs aspell?
 #
 # NOTE: We normally leave all these development packages until VMM or
 #       Workstation.  You only need them at this point if this is the first
@@ -593,8 +629,9 @@ PKGS_VMM += $(PKGS_ZFS)
 PKGS_VMM += syslinux syslinux-common dosfstools extlinux isolinux syslinux-efi syslinux-legacy syslinux-utils
 PKGS_VMM += efibootmgr
 PKGS_VMM += efitools efivar
-PKGS_VMM += fwupdate
+PKGS_VMM += fwupd fwupd-signed
 PKGS_VMM += smartmontools
+PKGS_VMM += lm-sensors fancontrol read-edid i2c-tools
 
 # FIXME: this is our built xen package... go build it.
 #
