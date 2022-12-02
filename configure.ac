@@ -7,6 +7,10 @@ AC_PROG_INSTALL
 AC_PROG_MKDIR_P
 AC_PROG_LN_S
 
+# FIXME: check for debootstrap
+# FIXME: check sudo skills or that we're running as root
+
+
 AC_CONFIG_FILES([Makefile
 		 ])
 AC_OUTPUT
