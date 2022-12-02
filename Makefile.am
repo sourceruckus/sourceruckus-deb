@@ -23,6 +23,24 @@ CHROOT=chroot sysroot /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH
 
 all: es.sqsh es-file.sqsh es-web.sqsh vmm.sqsh workstation.sqsh
 
+info:
+	@echo PKGS_ES=\"$(PKGS_ES)\"
+	@echo
+	@echo PKGS_ES_3RDPARTY=\"$(PKGS_ES_3RDPARTY)\"
+	@echo
+	@echo PKGS_ESFILE=\"$(PKGS_ESFILE)\"
+	@echo
+	@echo PKGS_ESWEB=\"$(PKGS_ESWEB)\"
+	@echo
+	@echo PKGS_ESWEB_LOCAL=\"$(PKGS_ESWEB_LOCAL)\"
+	@echo
+	@echo PKGS_VMM=\"$(PKGS_VMM)\"
+	@echo
+	@echo PKGS_WORKSTATION=\"$(PKGS_WORKSTATION)\"
+	@echo
+	@echo PKGS_COMPILATION=\"$(PKGS_COMPILATION)\"
+	@echo
+	@echo PKGS_ZFS=\"$(PKGS_ZFS)\"
 
 # stage1 - 340M
 #
