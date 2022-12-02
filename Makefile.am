@@ -37,7 +37,7 @@ all: es.sqsh es-file.sqsh es-web.sqsh vmm.sqsh workstation.sqsh
 .build/RUCKUS-DEBOOTSTRAP:
 	$(MAKE) sysroot-clean
 	$(MKDIR_P) $(dir $@)
-	debootstrap --arch=amd64 focal sysroot http://archive.ubuntu.com/ubuntu/
+	debootstrap --arch=amd64 jammy sysroot http://archive.ubuntu.com/ubuntu/
 	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
 	touch $@
 
@@ -72,10 +72,10 @@ sysroot-umount-vfs:
 
 .build/RUCKUS-ES-APT-PREP: .build/RUCKUS-DEBOOTSTRAP
 	$(MAKE) sysroot-mount-vfs
-	echo "deb http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse" > sysroot/etc/apt/sources.list
-	echo "deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted universe multiverse" >> sysroot/etc/apt/sources.list
-	echo "deb http://archive.ubuntu.com/ubuntu/ focal-backports main restricted universe multiverse" >> sysroot/etc/apt/sources.list
-	echo "deb http://security.ubuntu.com/ubuntu/ focal-security main restricted universe multiverse" >> sysroot/etc/apt/sources.list
+	echo "deb http://archive.ubuntu.com/ubuntu/ jammy main restricted universe multiverse" > sysroot/etc/apt/sources.list
+	echo "deb http://archive.ubuntu.com/ubuntu/ jammy-updates main restricted universe multiverse" >> sysroot/etc/apt/sources.list
+	echo "deb http://archive.ubuntu.com/ubuntu/ jammy-backports main restricted universe multiverse" >> sysroot/etc/apt/sources.list
+	echo "deb http://security.ubuntu.com/ubuntu/ jammy-security main restricted universe multiverse" >> sysroot/etc/apt/sources.list
 	$(CHROOT) apt update
 	$(CHROOT) apt upgrade -y --autoremove
 	touch $@
@@ -244,12 +244,12 @@ APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommend
 sysroot/etc/apt/sources.list.d/sourceruckus.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) apt-key add -
-	echo "deb https://sourceruckus.github.io/ppa focal main" > $@
+	echo "deb https://sourceruckus.github.io/ppa jammy main" > $@
 
 sysroot/etc/apt/sources.list.d/influxdb.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://repos.influxdata.com/influxdb.key | $(CHROOT) apt-key add -
-	echo "deb https://repos.influxdata.com/ubuntu focal stable" > $@
+	echo "deb https://repos.influxdata.com/ubuntu jammy stable" > $@
 
 sysroot/etc/apt/sources.list.d/grafana.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
@@ -259,7 +259,7 @@ sysroot/etc/apt/sources.list.d/grafana.list: .build/RUCKUS-ES-APT
 sysroot/etc/apt/sources.list.d/wine.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://dl.winehq.org/wine-builds/winehq.key | $(CHROOT) apt-key add -
-	echo "deb https://dl.winehq.org/wine-builds/ubuntu focal main" > $@
+	echo "deb https://dl.winehq.org/wine-builds/ubuntu jammy main" > $@
 
 # FIXME: i added this to try and get boxes to be able to browse to my file
 #        server via file manager.  didn't seem to work as desired, and now
@@ -275,7 +275,7 @@ sysroot/etc/apt/sources.list.d/wine.list: .build/RUCKUS-ES-APT
 sysroot/etc/apt/sources.list.d/wsdd.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://pkg.ltec.ch/public/conf/ltec-ag.gpg.key | $(CHROOT) apt-key add -
-	echo "deb https://pkg.ltec.ch/public/ focal main" > $@
+	echo "deb https://pkg.ltec.ch/public/ jammy main" > $@
 
 # NOTE: We do this instead of using add-apt-repository to make things a bit
 #	more consistent in here and to avoid multiple apt update calls.
@@ -289,7 +289,7 @@ sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 	    --keyserver keyserver.ubuntu.com \
 	    --recv CC1B5A793C04BB3905AD837734893610CEAA9512
 	$(CHROOT) gpgconf --kill all
-	echo "deb http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu focal main" > $@
+	echo "deb http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu jammy main" > $@
 
 sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
@@ -301,7 +301,7 @@ sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
 	    --keyserver keyserver.ubuntu.com \
 	    --recv 6B827C12C2D425E227EDCA75089EBE08314DF160
 	$(CHROOT) gpgconf --kill all
-	echo "deb https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu focal main " > $@
+	echo "deb https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu jammy main " > $@
 
 # NOTE: Definition of "3rd Party" in here is "upstream != Ubuntu".  That means
 #       our own Source Ruckus PPA is considered "3rd Party".
