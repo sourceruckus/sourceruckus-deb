@@ -239,7 +239,7 @@ PKGS_COMPILATION += python3-setuptools
 PKGS_COMPILATION += python3-cffi
 PKGS_COMPILATION += python3-distlib python3-packaging
 PKGS_COMPILATION += fakeroot
-PKGS_COMPILATION += libudev-dev
+#PKGS_COMPILATION += libudev-dev # jammy no likey
 # recommended at this point
 PKGS_COMPILATION += libalgorithm-merge-perl libfl-dev libc-dbg gdbserver
 PKGS_COMPILATION += libfile-fcntllock-perl libwww-perl libxml-sax-expat-perl
@@ -644,7 +644,7 @@ es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
 PKGS_VMM =
 PKGS_VMM += drbd-utils # from previously added upstream ppa
 PKGS_VMM += $(PKGS_ZFS)
-PKGS_VMM += syslinux syslinux-common dosfstools extlinux isolinux syslinux-efi syslinux-legacy syslinux-utils
+PKGS_VMM += syslinux syslinux-common dosfstools extlinux isolinux syslinux-efi syslinux-utils
 PKGS_VMM += efibootmgr
 PKGS_VMM += efitools efivar
 PKGS_VMM += fwupd fwupd-signed
@@ -700,23 +700,16 @@ sysroot-add-compilation:
 #
 # - 32bit update
 # - via apt
-#   - gcc-multilib (?) (85M?)
+#   - gcc-multilib (?)
 #   - ubuntu-desktop (maybe exclude a few pkgs?)
-#   - wireshark gkrellm gitk git-gui
-#   - emacs-gtk (replaces emacs-nox)
-#   - firefox
-#   - libreoffice
-#   - audacity audacious rhythmbox sox vorbis-tools etc
-#   - jackd
-#   - gimp inkscape
+#   - jackd?
 #   - vlc (via upstream snap?)
 #   - dvd player stuff (maybe?)
 #   - special font packages (maybe?)
 #   - rdesktop (and more?)
-#   - gnome-tweaks
-#   - libglvnd-dev meta-utils
+#   - libglvnd-dev (what did i need this for...?)
+#   - wine (upstream ppa?)
 # - 3rd party stuff
-#   - wine (upstream ppa)
 #   - teamviewer (wget the .deb, because it won't really work until I have graphical boot?)
 #   - google-chrome google-earth (wget the .deb?)
 #   - ardour (wget the download)
@@ -737,15 +730,24 @@ PKGS_WORKSTATION =
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
 PKGS_WORKSTATION += gcc-multilib g++-multilib gfortran-multilib
 PKGS_WORKSTATION += nfs-kernel-server
+PKGS_WORKSTATION += gimp gimp-help-en gimp-data-extras gsfonts libbluray-bdj mesa-opencl-icd libvdpau-va-gl1
 PKGS_WORKSTATION += groff ghostscript imagemagick libpaper1 netpbm psutils
-PKGS_WORKSTATION += minidlna libaacs0 libgdk-pixbuf2.0-bin librsvg2-common libbdplus0
-PKGS_WORKSTATION += libbluray-bdj opus-tools librsvg2-bin speex opencl-icd
-# FIXME: are these included by ubuntu-desktop?  i thought they were... but apt
-#        show va-driver-all lists all the variants of ubuntu-desktop except the
-#        main one.
-PKGS_WORKSTATION += va-driver-all vdpau-driver-all
-PKGS_WORKSTATION += mesa-vulkan-drivers
+PKGS_WORKSTATION += ffmpeg
+PKGS_WORKSTATION += gnuplot
+PKGS_WORKSTATION += inkscape xfig dia
+PKGS_WORKSTATION += audacity audacious
 
+PKGS_WORKSTATION += minidlna # libaacs0 libgdk-pixbuf2.0-bin librsvg2-common libbdplus0 # jammy already installed
+PKGS_WORKSTATION += opus-tools librsvg2-bin speex vorbis-tools sox
+
+PKGS_WORKSTATION += va-driver-all vdpau-driver-all mesa-utils
+#PKGS_WORKSTATION += mesa-vulkan-drivers # jammy already installed
+
+PKGS_WORKSTATION += wireshark gkrellm gitk git-gui
+PKGS_WORKSTATION += vlc
+PKGS_WORKSTATION += gnome-tweaks rdesktop
+PKGS_WORKSTATION += emacs-gtk # replaces emacs-nox
+PKGS_WORKSTATION += wine
 
 
 # Things for installer to do:
