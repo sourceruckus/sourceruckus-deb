@@ -151,8 +151,8 @@ PKGS_ES += udisks2 unattended-upgrades usb-modeswitch usb-modeswitch-data usb.id
 PKGS_ES += lz4
 PKGS_ES += iptables
 PKGS_ES += network-manager
-PKGS_ES += iptables-persistent #(yes for saving rules, dpkg-reconfigure later?) # jammy no config
-PKGS_ES += tshark #(yes for non-root capture, dpkg-reconfigure wireshark-common later?) # jammy no config
+PKGS_ES += iptables-persistent #(yes for saving rules, dpkg-reconfigure later?)
+PKGS_ES += tshark #(yes for non-root capture, dpkg-reconfigure wireshark-common later?)
 PKGS_ES += openssh-server ntp sntp ncurses-term
 PKGS_ES += dnsmasq
 PKGS_ES += cifs-utils smbclient samba attr samba-dsdb-modules samba-vfs-modules
@@ -161,7 +161,7 @@ PKGS_ES += acl
 PKGS_ES += attr
 PKGS_ES += bind9-host bind9-dnsutils net-tools
 PKGS_ES += vlan bridge-utils ifenslave
-PKGS_ES += postfix #(no config, use dpkg-reconfigre to tweak later) # jammy no config
+PKGS_ES += postfix #(no config, use dpkg-reconfigre to tweak later)
 PKGS_ES += mailutils
 PKGS_ES += zsh gkrellmd
 PKGS_ES += git-email
@@ -257,21 +257,6 @@ PKGS_COMPILATION += fonts-arphic-uming fonts-nanum fonts-noto-cjk
 PKGS_COMPILATION += fonts-noto-cjk-extra fonts-noto-color-emoji fonts-noto-extra
 PKGS_COMPILATION += fonts-noto-ui-core fonts-noto-ui-extra fonts-noto-unhinted
 PKGS_COMPILATION += libmath-random-isaac-xs-perl
-
-
-
-#lintian autoconf-archive gnu-standards autoconf-doc binutils-doc bison-doc distcc cmake-doc doc-base cpp-doc gcc-9-locales dh-make rpm-i18n \
- debian-keyring flex-doc gcc-doc gdb-doc gettext-doc libasprintf-dev libgettextpo-dev \
- glibc-doc bzr libtool-doc liblzma-doc ncurses-doc libssl-doc gfortran m4-doc libmail-box-perl python3-dev \
- elfutils rpmlint texlive-base texlive-latex-base texlive-plain-generic \
- texlive-fonts-recommended \
-python3-gpg libasync-mergepoint-perl libsereal-perl libtest-fatal-perl libtest-refcount-perl javascript-common libdigest-bubblebabble-perl \
-  libnet-dns-sec-perl libnet-libidn-perl libperl4-corelibs-perl libpackage-stash-xs-perl libref-util-perl libtype-tiny-xs-perl libperlio-gzip-perl \
-  python3-launchpadlib python3-github python3-gitlab appstream-util python3-enchant python3-magic lmodern dvisvgm tex-gyre tipa libfile-mimeinfo-perl \
-  libnet-dbus-perl libx11-protocol-perl x11-utils x11-xserver-utils \
-enchant-2 libgdk-pixbuf2.0-bin hunspell-en-us  libreadonly-perl libref-util-xs-perl mesa-vulkan-drivers \
-  libtie-ixhash-perl libxml-xpathengine-perl libxml-xpath-perl
-
 #
 # NOTE: As mentioned above, to add compilation toolchain and dev packages to
 #       es.sqsh, uncomment the following:
@@ -288,7 +273,9 @@ enchant-2 libgdk-pixbuf2.0-bin hunspell-en-us  libreadonly-perl libref-util-xs-p
 #       though...  so I tried just copying config.dat in directly as I'd
 #       originally planned and it worked fine... so that's what I'm doing.
 #
-APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
+#APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
+#
+APT_INSTALL=apt install -y --no-install-recommends
 .build/RUCKUS-ES-APT: .build/RUCKUS-ES-APT-PREP
 	$(MAKE) sysroot-mount-vfs
 	cp debconf-config.dat sysroot/var/cache/debconf/config.dat
