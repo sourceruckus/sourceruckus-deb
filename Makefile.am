@@ -336,6 +336,7 @@ sysroot/etc/apt/sources.list.d/wsdd.list: .build/RUCKUS-ES-APT
 #	more consistent in here and to avoid multiple apt update calls.
 sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
+	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
 	$(CHROOT) gpgconf --launch gpg-agent
 	$(CHROOT) gpg --ignore-time-conflict --no-options --no-default-keyring \
 	    --secret-keyring /etc/apt/secring.gpg \
@@ -348,6 +349,7 @@ sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 
 sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
+	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
 	$(CHROOT) gpgconf --launch gpg-agent
 	$(CHROOT) gpg --ignore-time-conflict --no-options --no-default-keyring \
 	    --secret-keyring /etc/apt/secring.gpg \
