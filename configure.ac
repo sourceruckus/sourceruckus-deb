@@ -9,6 +9,7 @@ AC_PROG_LN_S
 
 # FIXME: check for debootstrap
 # FIXME: check sudo skills or that we're running as root
+# FIXME: add --enable-devel for creating es-devel.sqsh
 
 
 AC_CONFIG_FILES([Makefile

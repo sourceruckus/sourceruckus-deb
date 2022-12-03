@@ -21,6 +21,9 @@ EXTRA_DIST += $(top_docs)
 CHROOT=chroot sysroot /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH
 
 
+# FIXME: If --enable-devel, replace this with just es-devel.sqsh
+#
+#all: es-devel.sqsh
 all: es.sqsh es-file.sqsh es-web.sqsh vmm.sqsh workstation.sqsh
 
 info:
@@ -261,6 +264,17 @@ PKGS_COMPILATION += libmath-random-isaac-xs-perl
 # NOTE: As mentioned above, to add compilation toolchain and dev packages to
 #       es.sqsh, uncomment the following:
 #
+# FIXME: Should add an es-devel.sqsh target that adds PKGS_COMPILATION
+#        and empties PKGS_3RDPARTY (but leaves the ppa setup in place)
+#        to help facilite this.  Perhaps with a configure
+#        --enable-devel or something like that?  Should it literally
+#        build all the way through to a bootable sqsh image or just
+#        leave us with a chrootable dev environment?
+#
+#        Does it even need a configure flag if it's a different build
+#        target?  The configure flag will allow conditional
+#        variables...
+#
 #PKGS_ES += $(PKGS_COMPILATION)
 
 # NOTE: We want apt install to be completely noninteractive with pre-seeded
@@ -366,6 +380,10 @@ sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
 #       can easily apt install things for testing and corner-cases
 #       (e.g. combined file/web server).
 #
+# FIXME: see FIXME above regarding configure --enable-devel for
+#        creating an es-devel.sqsh image...  if that's enabled, leave
+#        PKGS_ES_3RDPARTY empty.
+#
 PKGS_ES_3RDPARTY =
 PKGS_ES_3RDPARTY += telegraf #(135M! didn't realize it was that large)
 PKGS_ES_3RDPARTY += ruckusrd
@@ -375,7 +393,14 @@ PKGS_ES_3RDPARTY += kernel-builder
 PKGS_ES_3RDPARTY += extractenator
 PKGS_ES_3RDPARTY += firmwarenator
 PKGS_ES_3RDPARTY += microcodenator
+#PKGS_ES_3RDPARTY =
 
+# FIXME: For --enable-devel, we need to empty this list out as well.
+#        We need to do these by hand during the bootstrap process and
+#        update the rules as we go.  The Source Ruckus PPA could just
+#        be left out, but in all likelyhood at least one more of these
+#        will be invalid on our first pass.
+#
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/sourceruckus.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/influxdb.list
 .build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/grafana.list
@@ -419,6 +444,12 @@ PKGS_ES_3RDPARTY += microcodenator
 #        but we could always compile our own in /usr/local or something. (or
 #        provide a newer bionic deb via source ruckus ppa)
 #
+# FIXME: See all the --enable-devel banter.  If specified, we should
+#        build ONLY es-devel.sqsh (so we need to remove all other
+#        .sqsh targets from 'all'), and we add PKGS_COMPILATION and
+#        prune PKGS_3RDPARTY.
+#
+#es-devel.sqsh: .build/RUCKUS-ES-FINAL
 es.sqsh: .build/RUCKUS-ES-FINAL
 	$(MAKE) sysroot-umount-vfs
 	mksquashfs sysroot $@ -comp lz4 -Xhc -noappend -wildcards
