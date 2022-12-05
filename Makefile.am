@@ -419,7 +419,9 @@ endif
 #       during installation/groom.
 #
 # NOTE: We create globally-managed-devices.conf because all interfaces end up
-#       "unmanaged" in NetworkManager w/out it.
+#       "unmanaged" in NetworkManager w/out it.  (This was definately needed
+#       for focal, but I forgot to check if it's still needed with
+#       jammy... doesn't hurt anything though)
 #
 # NOTE: We disable and mask the RPC security service for NFS here, because upon
 #       joining an AD domain, even if you don't have nfs-kernel-server
@@ -808,7 +810,7 @@ PKGS_WORKSTATION += wine
 #     - krb5.conf
 #     - pam.d/common-passwd (or change localadmin uid to 500?)
 #   - service enable/disable?
-#   - useradd?
+#   - useradd -c "Local Administrator" -G adm,sudo,cdrom,dip,plugdev,lpadmin,lxd,sambashare -m -s /bin/zsh localadmin
 #
 #
 # - create new host.sqsh from overlay mount (perhaps?)
