@@ -421,6 +421,10 @@ endif
 # NOTE: We create globally-managed-devices.conf because all interfaces end up
 #       "unmanaged" in NetworkManager w/out it.
 #
+# NOTE: We disable and mask the RPC security service for NFS here, because upon
+#       joining an AD domain, even if you don't have nfs-kernel-server
+#       installed, this service autostarts and fails.
+#
 # FIXME: should really move awesome-powers to /opt
 #
 .build/RUCKUS-ES-FINAL: .build/RUCKUS-ES-3RDPARTY
@@ -433,6 +437,8 @@ endif
 	$(CHROOT) apt clean
 	$(CHROOT) systemctl set-default multi-user.target
 	$(CHROOT) systemctl disable dnsmasq
+	$(CHROOT) systemctl disable rpc-svcgssd.service
+	$(CHROOT) systemctl mask rpc-svcgssd.service
 	touch $@
 
 # FIXME: migrate to -comp zstd.  Ubuntu 18.04's squashfs doesn't support it,
