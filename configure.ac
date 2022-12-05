@@ -9,8 +9,14 @@ AC_PROG_LN_S
 
 # FIXME: check for debootstrap
 # FIXME: check sudo skills or that we're running as root
-# FIXME: add --enable-devel for creating es-devel.sqsh
 
+# build a devel-enabled base image
+AC_ARG_ENABLE(devel,
+  AS_HELP_STRING([--enable-devel], [Enable building es-devel.sqsh [default=no]]),
+  es_devel=$enableval,
+  es_devel=no)
+AC_SUBST(ES_DEVEL, $es_devel)
+AM_CONDITIONAL([ES_DEVEL], [test x$ES_DEVEL = xyes])
 
 AC_CONFIG_FILES([Makefile
 		 ])
