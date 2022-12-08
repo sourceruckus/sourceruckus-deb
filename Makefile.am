@@ -737,18 +737,22 @@ sysroot-add-compilation:
 .build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
 
 PKGS_WORKSTATION =
+# things we want from esfile
+PKGS_WORKSTATION += nfs-kernel-server
+PKGS_WORKSTATION += wsdd
+PKGS_WORKSTATION += gmt gmt-dcw gmt-gshhg proj-bin
+#PKGS_WORKSTATION += mbsystem # FIXME: durp, UbuntuGIS dropped mbsystem in focal?
+# development stuff
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
 PKGS_WORKSTATION += kernel-builder
 PKGS_WORKSTATION += gcc-multilib g++-multilib gfortran-multilib
-PKGS_WORKSTATION += nfs-kernel-server
+# everything else we want
 PKGS_WORKSTATION += gimp gimp-help-en gimp-data-extras gsfonts libbluray-bdj mesa-opencl-icd libvdpau-va-gl1
 PKGS_WORKSTATION += groff ghostscript imagemagick libpaper1 netpbm psutils
 PKGS_WORKSTATION += ffmpeg
 PKGS_WORKSTATION += gnuplot
 PKGS_WORKSTATION += inkscape xfig dia
 PKGS_WORKSTATION += audacity audacious
-
-PKGS_WORKSTATION += minidlna # libaacs0 libgdk-pixbuf2.0-bin librsvg2-common libbdplus0 # jammy already installed
 PKGS_WORKSTATION += opus-tools librsvg2-bin speex vorbis-tools sox
 
 PKGS_WORKSTATION += va-driver-all vdpau-driver-all mesa-utils
