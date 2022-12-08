@@ -279,9 +279,12 @@ endif
 #       though...  so I tried just copying config.dat in directly as I'd
 #       originally planned and it worked fine... so that's what I'm doing.
 #
-#APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
+# NOTE: While the debconf-config.dat workaround does answer the
+#       questions before they pop-up, it does NOT suppress other
+#       interactive things (e.g., needrestart service restart dialog).
+#       So we still also supply DEBIAN_FRONTEND=noninteractive.
 #
-APT_INSTALL=apt install -y --no-install-recommends
+APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
 .build/RUCKUS-ES-APT: .build/RUCKUS-ES-APT-PREP
 	$(MAKE) sysroot-mount-vfs
 	cp debconf-config.dat sysroot/var/cache/debconf/config.dat
