@@ -7,6 +7,9 @@ m4_ifnblank(sr_devtag,
 	[m4_define(sr_version, sr_major_version.sr_minor_version.sr_micro_version-sr_devtag)],
 	[m4_define(sr_version, sr_major_version.sr_minor_version.sr_micro_version)])
 
+# FIXME: can i get a timestamp in here to append to sqsh images?
+#        didn't i used to do that somewhere...?
+
 AC_INIT([Source Ruckus Jammy System Builder], [sr_version], [veggiemike@sourceruckus.org], [sourceruckus-jammy])
 AC_CONFIG_AUX_DIR([.])
 #AC_CONFIG_MACRO_DIR([m4])
@@ -82,10 +85,10 @@ echo
 # FIXME: should really generate this list better, potentially with
 #       --enable-es-file, --enable-es-web, etc...
 #
-echo "Sqsh Images:"
+echo "Enabled Sqsh Images:"
 AS_IF([test "x$es_devel" != "xyes"],
 [
-echo "  es.sqsh es-files.sqsh es-web.sqsh vmm.sqsh workstation.sqsh"
+echo "  es.sqsh es-file.sqsh es-web.sqsh vmm.sqsh workstation.sqsh"
 ],
 [
 echo "  es-devel.sqsh"
