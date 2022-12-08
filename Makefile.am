@@ -199,6 +199,7 @@ PKGS_ES += iotop
 PKGS_ES += sdparm
 PKGS_ES += sysstat
 PKGS_ES += nmap
+PKGS_ES += apt-file
 #
 # NOTE: We normally leave all these development packages until VMM or
 #       Workstation.  You only need them at this point if this is the first
