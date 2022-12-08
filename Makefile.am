@@ -375,21 +375,26 @@ PKGS_ES_3RDPARTY += doit
 PKGS_ES_3RDPARTY += extractenator
 endif
 
-# NOTE For --enable-devel, we need to empty this list out as well.  We need to
-#      do these by hand during the bootstrap process and update the rules as we
-#      go.  The Source Ruckus PPA could just be left out, but in all likelyhood
-#      at least one more of these will be invalid on our first pass.
+# NOTE: For --enable-devel, we need to empty this list out as well.  We need to
+#       do these by hand during the bootstrap process and update the rules as
+#       we go.  The Source Ruckus PPA could just be left out, but in all
+#       likelyhood at least one more of these will be invalid on our first
+#       pass.
+#
+# NOTE: This is defined as an additional rule (instead of just adding more
+#       depends to RUCKUS-ES-3RDPARTY) to silence some automake warnings.
 #
 if !ES_DEVEL
-.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/sourceruckus.list
-.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/influxdb.list
-.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/grafana.list
-.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
-.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/ubuntu-gis.list
-.build/RUCKUS-ES-3RDPARTY: sysroot/etc/apt/sources.list.d/wine.list
+.PHONY: PPAS_ES
+PPAS_ES: sysroot/etc/apt/sources.list.d/sourceruckus.list
+PPAS_ES: sysroot/etc/apt/sources.list.d/influxdb.list
+PPAS_ES: sysroot/etc/apt/sources.list.d/grafana.list
+PPAS_ES: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
+PPAS_ES: sysroot/etc/apt/sources.list.d/ubuntu-gis.list
+PPAS_ES: sysroot/etc/apt/sources.list.d/wine.list
 endif
 
-.build/RUCKUS-ES-3RDPARTY: .build/RUCKUS-ES-APT
+.build/RUCKUS-ES-3RDPARTY: .build/RUCKUS-ES-APT PPAS_ES
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) apt update
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES_3RDPARTY)
