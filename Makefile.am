@@ -246,7 +246,7 @@ PKGS_COMPILATION += python3-setuptools
 PKGS_COMPILATION += python3-cffi
 PKGS_COMPILATION += python3-distlib python3-packaging
 PKGS_COMPILATION += fakeroot
-#PKGS_COMPILATION += libudev-dev # jammy no likey
+PKGS_COMPILATION += libudev-dev
 # recommended at this point
 PKGS_COMPILATION += libalgorithm-merge-perl libfl-dev libc-dbg gdbserver
 PKGS_COMPILATION += libfile-fcntllock-perl libwww-perl libxml-sax-expat-perl
@@ -287,6 +287,17 @@ APT_INSTALL=apt install -y --no-install-recommends
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES)
 	touch $@
 
+# FIXME: jammy warings on apt-key usage:
+#
+#        apt-key add: Warning: apt-key is deprecated. Manage keyring
+#        files in trusted.gpg.d instead (see apt-key(8)).
+#
+#        apt update: W:
+#        https://sourceruckus.github.io/ppa/dists/jammy/InRelease: Key
+#        is stored in legacy trusted.gpg keyring
+#        (/etc/apt/trusted.gpg), see the DEPRECATION section in
+#        apt-key(8) for details.
+#
 sysroot/etc/apt/sources.list.d/sourceruckus.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) apt-key add -
