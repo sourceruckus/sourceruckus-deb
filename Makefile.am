@@ -376,11 +376,6 @@ sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
 #       should fail because missing packages), manually chroot into the
 #       resulting system, build packages and upload them to our PPA.
 #
-# NOTE: I'm including ruckusrd on ES even though I only intend to use it as a
-#       virtual machine so that we have the included dev scripts (e.g., doit,
-#       extractenator).  Also, I'm planning to add sqsh_layer maintenance
-#       functionality to ruckusrd, which we'll want on all the layers.
-#
 # NOTE: We prep the PPAs for the ES-file and ES-web additions now, so that we
 #       can easily apt install things for testing and corner-cases
 #       (e.g. combined file/web server).
@@ -391,13 +386,9 @@ sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
 PKGS_ES_3RDPARTY =
 if !ES_DEVEL
 PKGS_ES_3RDPARTY += telegraf #(135M! didn't realize it was that large)
-PKGS_ES_3RDPARTY += ruckusrd
 PKGS_ES_3RDPARTY += pingenator
 PKGS_ES_3RDPARTY += doit
-PKGS_ES_3RDPARTY += kernel-builder
 PKGS_ES_3RDPARTY += extractenator
-PKGS_ES_3RDPARTY += firmwarenator
-PKGS_ES_3RDPARTY += microcodenator
 endif
 
 # NOTE For --enable-devel, we need to empty this list out as well.  We need to
@@ -677,6 +668,9 @@ es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
 PKGS_VMM =
 PKGS_VMM += drbd-utils # from previously added upstream ppa
 PKGS_VMM += $(PKGS_ZFS)
+PKGS_VMM += ruckusrd
+PKGS_VMM += firmwarenator
+PKGS_VMM += microcodenator
 PKGS_VMM += syslinux syslinux-common dosfstools extlinux isolinux syslinux-efi syslinux-utils
 PKGS_VMM += efibootmgr
 PKGS_VMM += efitools efivar
@@ -761,6 +755,7 @@ sysroot-add-compilation:
 
 PKGS_WORKSTATION =
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
+PKGS_WORKSTATION += kernel-builder
 PKGS_WORKSTATION += gcc-multilib g++-multilib gfortran-multilib
 PKGS_WORKSTATION += nfs-kernel-server
 PKGS_WORKSTATION += gimp gimp-help-en gimp-data-extras gsfonts libbluray-bdj mesa-opencl-icd libvdpau-va-gl1
