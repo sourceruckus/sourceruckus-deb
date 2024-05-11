@@ -140,7 +140,6 @@ sysroot-umount-vfs:
 # - sg3-utils sg3-utils-udev (pulled in initramfs stuff)
 # - snapd
 # - tmux
-# - ubuntu-release-upgrader-core
 # - ubuntu-server
 # - update-manager-core update-notifier-common
 #
@@ -154,6 +153,7 @@ PKGS_ES += linux-base lshw lvm2 mdadm modemmanager motd-news-config needrestart
 PKGS_ES += ntfs-3g open-iscsi openssh-client packagekit packagekit-tools parted patch pci.ids pciutils perl perl-modules-5.34 pinentry-curses pkexec plymouth plymouth-theme-ubuntu-text policykit-1 polkitd pollinate publicsuffix
 PKGS_ES += run-one sbsigntool secureboot-db software-properties-common sosreport squashfs-tools tcl tcl8.6 thin-provisioning-tools tpm-udev
 PKGS_ES += udisks2 unattended-upgrades usb-modeswitch usb-modeswitch-data usb.ids vim vim-runtime xauth xfsprogs xz-utils zerofree zstd
+PKGS_ES += ubuntu-release-upgrader-core # had originally removed this, but do-release-upgrade actually seems to work wonderfully!
 # additional things we want
 PKGS_ES += lz4
 PKGS_ES += iptables
