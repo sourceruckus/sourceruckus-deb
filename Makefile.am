@@ -586,7 +586,10 @@ PKGS_ESWEB += grafana # upstream ppa added already
 # sudo /bin/systemctl enable grafana-server
 ### You can start grafana-server by executing
 # sudo /bin/systemctl start grafana-server
-PKGS_ESWEB += mongodb-server mongo-tools # for unifi
+#
+# FIXME: didn't mongodb get dropped from ubuntu?  looks like unifi
+#        delivers its own mongodb, too
+#PKGS_ESWEB += mongodb-server mongo-tools # for unifi
 
 # FIXME: Considered adding the unifi deb to my ppa... but I'm pretty sure it
 #        adds it's own ppa as upstream for updates, so that's probably a bad
