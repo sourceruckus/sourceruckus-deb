@@ -672,10 +672,7 @@ PKGS_VMM += efitools efivar
 PKGS_VMM += fwupd fwupd-signed
 PKGS_VMM += smartmontools
 PKGS_VMM += lm-sensors fancontrol read-edid i2c-tools
-
-# FIXME: this is our built xen package... go build it.
-#
-#PKGS_VMM += xen
+PKGS_VMM += xen
 
 .build/RUCKUS-VMM-CLEAN:
 	$(MAKE) sysroot-clean
