@@ -123,43 +123,56 @@ sysroot-umount-vfs:
 # 3. apt install --no-install-recommends $PKGS_ES [n]
 # 4. Compare and contrast, try again until you like the list.
 #
+# W/out removing things, ubuntu-server adds ~420M.  All our pruning
+# reduces that to just an additional ~240M, then we add in things we
+# actually want.
+#
 # Removed
 # - apparmor
-# - apport apport-symptoms
+# - apport apport-*
+# - appstream
 # - bcache-tools
 # - busybox-initramfs
 # - byobu
-# - cloud-guest-utils cloud-initramfs-copymods cloud-initramfs-dyn-netconf
+# - cloud-*
 # - cryptsetup-initramfs
+# - dracut-*
 # - fonts-ubuntu-console
 # - fwupd fwupd-signed
-# - initramfs-tools initramfs-tools-bin initramfs-tools-core
+# - initramfs-tools initramfs-tools-*
 # - klibc-utils
 # - landscape-common
-# - lxd-agent-loader
+# - lxd-*
 # - multipath-tools (pulled in initramfs stuff)
 # - open-vm-tools
 # - overlayroot
 # - pastebinit
+# - plymouth plymouth-*
 # - screen
+# - sbsigntool secureboot-db
 # - sg3-utils sg3-utils-udev (pulled in initramfs stuff)
 # - snapd
+# - sosreport
 # - tmux
+# - tpm-udev
 # - ubuntu-server
 # - update-manager-core update-notifier-common
 #
-# NOTE: utils to play with: kexec htop run-one sosreport zerofree
+# NOTE: utils to play with: kexec htop run-one zerofree
 #
 PKGS_ES =
-PKGS_ES += bc binutils binutils-common binutils-x86-64-linux-gnu bolt btrfs-progs cpio cryptsetup cryptsetup-bin curl
-PKGS_ES += dbus-user-session dirmngr dmeventd dmidecode dosfstools ethtool fdisk finalrd fuse3 gawk gdisk gettext-base gir1.2-packagekitglib-1.0 git git-man gnupg gnupg-l10n gnupg-utils gpg gpg-agent gpg-wks-client gpg-wks-server gpgconf gpgsm
-PKGS_ES += groff-base htop kpartx
-PKGS_ES += linux-base lshw lvm2 mdadm modemmanager motd-news-config needrestart
-PKGS_ES += ntfs-3g open-iscsi openssh-client packagekit packagekit-tools parted patch pci.ids pciutils perl perl-modules-5.34 pinentry-curses pkexec plymouth plymouth-theme-ubuntu-text policykit-1 polkitd pollinate publicsuffix
-PKGS_ES += run-one sbsigntool secureboot-db software-properties-common sosreport squashfs-tools tcl tcl8.6 thin-provisioning-tools tpm-udev
-PKGS_ES += udisks2 unattended-upgrades usb-modeswitch usb-modeswitch-data usb.ids vim vim-runtime xauth xfsprogs xz-utils zerofree zstd
-PKGS_ES += ubuntu-release-upgrader-core # had originally removed this, but do-release-upgrade actually seems to work wonderfully!
-# additional things we want
+PKGS_ES += bc bolt btrfs-progs cpio cryptsetup cryptsetup-bin curl
+PKGS_ES += dirmngr dmeventd dmidecode dosfstools
+PKGS_ES += ethtool fdisk finalrd fuse3 gawk gdisk gettext-base gir1.2-packagekitglib-1.0 git git-man gnupg
+PKGS_ES += gnupg-l10n gnupg-utils gpg gpg-agent gpg-wks-client gpgconf gpgsm groff-base htop jq keyboxd
+PKGS_ES += kpartx linux-base lshw lvm2
+PKGS_ES += mdadm modemmanager motd-news-config needrestart ntfs-3g open-iscsi openssh-client
+PKGS_ES += packagekit packagekit-tools parted patch pci.ids pciutils perl perl-modules-5.38 pinentry-curses
+PKGS_ES += polkitd pollinate publicsuffix
+PKGS_ES += run-one sgml-base software-properties-common
+PKGS_ES += squashfs-tools tcl tcl8.6 thin-provisioning-tools ubuntu-release-upgrader-core udisks2 unattended-upgrades
+PKGS_ES += usb-modeswitch usb-modeswitch-data usb.ids vim vim-runtime xauth xfsprogs xml-core xz-utils zerofree zstd
+# additional things we want (~730M last time I checked)
 PKGS_ES += lz4
 PKGS_ES += iptables
 PKGS_ES += network-manager
@@ -191,7 +204,7 @@ PKGS_ES += traceroute
 PKGS_ES += tree
 PKGS_ES += zip unzip unrar
 PKGS_ES += xattr
-PKGS_ES += krb5-user #(specified default realm, server (krb5), and pw server (krb5pw), use dpkg-reconfigure later?)
+PKGS_ES += krb5-user #(specified default realm (SOURCERUCKUS.ORG), server (krb5), and pw server (krb5pw), use dpkg-reconfigure later?)
 PKGS_ES += libpam-krb5
 PKGS_ES += mosh
 PKGS_ES += wget
@@ -199,13 +212,14 @@ PKGS_ES += man-db wamerican whois
 PKGS_ES += psmisc
 PKGS_ES += fio
 PKGS_ES += iperf
-PKGS_ES += iperf3
+PKGS_ES += iperf3 #(no for run as daemon automatically, dpkg-reconfigure later? no was the default)
 PKGS_ES += iotop
 PKGS_ES += sdparm
 PKGS_ES += sysstat
 PKGS_ES += nmap
 PKGS_ES += apt-file
 PKGS_ES += fsarchiver
+# compilation toolchain and additional development tools and libraries (~1.3G)
 #
 # NOTE: We normally leave all these development packages until VMM or
 #       Workstation.  You only need them at this point if this is the first
@@ -213,21 +227,19 @@ PKGS_ES += fsarchiver
 #       the Source Ruckus PPA packages.  If that's the case, add
 #       PKGS_COMPILATION to PKGS_ES for a test build and do your thing.
 #
-# compilation toolchain (~300M)
 PKGS_COMPILATION =
-PKGS_COMPILATION += build-essential manpages-dev # (190M)
-PKGS_COMPILATION += autoconf automake autopoint m4 libtool gettext pkg-config bison flex # (13M)
-PKGS_COMPILATION += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc # (62M)
+PKGS_COMPILATION += build-essential manpages-dev
+PKGS_COMPILATION += autoconf automake autopoint m4 libtool gettext pkg-config bison flex
+PKGS_COMPILATION += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc
 PKGS_COMPILATION += yajl-tools
 PKGS_COMPILATION += dwarves # needed by kernel CONFIG_DEBUG_INFO_BTF
-#
 # add these in for ruckusrd subproject deps
 PKGS_COMPILATION += libkmod-dev libblkid-dev # for eudev
 PKGS_COMPILATION += libaio-dev # for lvm2
 PKGS_COMPILATION += liblz4-dev liblzma-dev libzstd-dev zlib1g-dev liblzo2-dev # for squashfs-tools
 PKGS_COMPILATION += libssl-dev # for zfs
 PKGS_COMPILATION += libacl1-dev libattr1-dev libext2fs-dev libpopt-dev libltdl-dev xxhash libxxhash-dev # for rsync
-PKGS_COMPILATION += libefivar1 libefivar-dev libefiboot1 libefiboot-dev # for efibootmgr
+PKGS_COMPILATION += libefivar1t64 libefivar-dev libefiboot1t64 libefiboot-dev # for efibootmgr
 PKGS_COMPILATION += netpbm # for groff
 # add these for kernel compilation
 PKGS_COMPILATION += libncurses-dev libelf-dev
@@ -248,14 +260,14 @@ PKGS_COMPILATION += libncurses-dev libelf-dev
 #
 PKGS_COMPILATION += alien libarchive-cpio-perl libmail-sendmail-perl
 PKGS_COMPILATION += libpython3-dev
-PKGS_COMPILATION += python3-distutils
+#PKGS_COMPILATION += python3-distutils # no longer exists?
 PKGS_COMPILATION += python3-setuptools
 PKGS_COMPILATION += python3-cffi
 PKGS_COMPILATION += python3-distlib python3-packaging
 PKGS_COMPILATION += fakeroot
 PKGS_COMPILATION += libudev-dev
 # recommended at this point
-PKGS_COMPILATION += libalgorithm-merge-perl libfl-dev libc-dbg gdbserver
+PKGS_COMPILATION += libalgorithm-merge-perl libfl-dev libc6-dbg gdbserver
 PKGS_COMPILATION += libfile-fcntllock-perl libwww-perl libxml-sax-expat-perl
 PKGS_COMPILATION += ghostscript
 PKGS_COMPILATION += libalgorithm-diff-xs-perl fonts-droid-fallback
@@ -264,13 +276,14 @@ PKGS_COMPILATION += libhtml-form-perl libhttp-daemon-perl libmailtools-perl
 PKGS_COMPILATION += fonts-noto-mono libauthen-sasl-perl
 # suggested at this point (not all of them, just a select few)
 PKGS_COMPILATION += fonts-noto fonts-freefont-otf fonts-freefont-ttf
-PKGS_COMPILATION += fonts-texgyre ghostscript-x libdigest-hmac-perl
+PKGS_COMPILATION += fonts-texgyre libdigest-hmac-perl
 PKGS_COMPILATION += libgssapi-perl libcrypt-ssleay-perl libauthen-ntlm-perl
 PKGS_COMPILATION += libxml-sax-expatxs-perl poppler-utils fonts-arphic-ukai
 PKGS_COMPILATION += fonts-arphic-uming fonts-nanum fonts-noto-cjk
 PKGS_COMPILATION += fonts-noto-cjk-extra fonts-noto-color-emoji fonts-noto-extra
 PKGS_COMPILATION += fonts-noto-ui-core fonts-noto-ui-extra fonts-noto-unhinted
 PKGS_COMPILATION += libmath-random-isaac-xs-perl
+PKGS_COMPILATION += libasprintf-dev libgettextpo-dev elfutils
 if ES_DEVEL
 PKGS_ES += $(PKGS_COMPILATION)
 endif
