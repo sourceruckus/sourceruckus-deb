@@ -292,7 +292,7 @@ APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommend
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES)
 	touch $@
 
-# FIXME: jammy warings on apt-key usage:
+# FIXME: jammy warnings on apt-key usage:
 #
 #        apt-key add: Warning: apt-key is deprecated. Manage keyring
 #        files in trusted.gpg.d instead (see apt-key(8)).
@@ -303,28 +303,49 @@ APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommend
 #        (/etc/apt/trusted.gpg), see the DEPRECATION section in
 #        apt-key(8) for details.
 #
+# FIXME: we should really be putting all these keys in
+#        /etc/apt/keysrings and then putting [signed-by=...] in each
+#        sources file.
+#
+# see https://askubuntu.com/questions/1286545/what-commands-exactly-should-replace-the-deprecated-apt-key
+#
 sysroot/etc/apt/sources.list.d/sourceruckus.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) apt-key add -
+	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) tee /etc/apt/trusted.gpg.d/sourceruckus.asc
 	echo "deb https://sourceruckus.github.io/ppa jammy main" > $@
 
 sysroot/etc/apt/sources.list.d/influxdb.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://repos.influxdata.com/influxdb.key | $(CHROOT) apt-key add -
+	wget -qO- https://repos.influxdata.com/influxdata-archive_compat.key | $(CHROOT) tee /etc/apt/trusted.gpg.d/influxdb.asc
 	echo "deb https://repos.influxdata.com/ubuntu jammy stable" > $@
 
 sysroot/etc/apt/sources.list.d/grafana.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) apt-key add -
+	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) tee /etc/apt/trusted.gpg.d/grafana.asc
 	echo "deb https://packages.grafana.com/oss/deb stable main" > $@
 
 sysroot/etc/apt/sources.list.d/wine.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://dl.winehq.org/wine-builds/winehq.key | $(CHROOT) apt-key add -
+	wget -qO- https://dl.winehq.org/wine-builds/winehq.key | $(CHROOT) tee /etc/apt/trusted.gpg.d/wine.asc
 	echo "deb https://dl.winehq.org/wine-builds/ubuntu jammy main" > $@
 
 # NOTE: We do this instead of using add-apt-repository to make things a bit
 #	more consistent in here and to avoid multiple apt update calls.
+#
+# FIXME: this is going to result in DEPRECATION warnings about
+#        apt-key... pretty sure i can pull the keys out after doing
+#        this and store them as files, but how do i just do that to
+#        begin with...?
+#
+# gpg --no-default-keyring --keyring /tmp/keybox.gpg --keyserver keyserver.ubuntu.com --recv-keys CC1B5A793C04BB3905AD837734893610CEAA9512
+# gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > ./linbit.gpg
+#
+# FIXME: we should really be putting all these keys in
+#        /etc/apt/keysrings and then putting [signed-by=...] in each
+#        sources file.
+#
+# see https://askubuntu.com/questions/1286545/what-commands-exactly-should-replace-the-deprecated-apt-key
+#
 sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
