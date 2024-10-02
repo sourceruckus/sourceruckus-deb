@@ -31,6 +31,8 @@ endif
 
 
 info:
+	@echo DEBOOTSTRAP=$(DEBOOTSTRAP)
+	@echo
 	@echo PKGS_ES=\"$(PKGS_ES)\"
 	@echo
 	@echo PKGS_ES_3RDPARTY=\"$(PKGS_ES_3RDPARTY)\"
@@ -49,7 +51,7 @@ info:
 	@echo
 	@echo PKGS_ZFS=\"$(PKGS_ZFS)\"
 
-# stage1 - 340M
+# stage1 - 211M
 #
 # NOTE: We change UID_MIN and GID_MIN to 500 in /etc/login.defs
 #       accross-the-board to differentiate local users from krb5 users.
@@ -59,10 +61,12 @@ info:
 #       (i.e., if we wait until "finalization" of es.sqsh, it's too late -
 #       we've got gkrellmd and telegraf as 999 and 998).
 #
+DEBOOTSTRAP_DIR=$(abs_srcdir)/debootstrap
+DEBOOTSTRAP=$(DEBOOTSTRAP_DIR)/debootstrap
 .build/RUCKUS-DEBOOTSTRAP:
 	$(MAKE) sysroot-clean
 	$(MKDIR_P) $(dir $@)
-	debootstrap --arch=amd64 noble sysroot http://archive.ubuntu.com/ubuntu/
+	DEBOOTSTRAP_DIR=$(DEBOOTSTRAP_DIR) $(DEBOOTSTRAP) --arch=amd64 noble sysroot http://archive.ubuntu.com/ubuntu/
 	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
 	touch $@
 
@@ -95,6 +99,7 @@ sysroot-mount-vfs: sysroot/proc/self sysroot/sys/block sysroot/dev/block
 sysroot-umount-vfs:
 	umount -R sysroot/{proc,sys,dev} || echo already unmounted
 
+# after updates, sysroot is ~280M
 .build/RUCKUS-ES-APT-PREP: .build/RUCKUS-DEBOOTSTRAP
 	$(MAKE) sysroot-mount-vfs
 	echo "deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse" > sysroot/etc/apt/sources.list
