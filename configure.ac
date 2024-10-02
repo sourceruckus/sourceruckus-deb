@@ -10,7 +10,7 @@ m4_ifnblank(sr_devtag,
 # FIXME: can i get a timestamp in here to append to sqsh images?
 #        didn't i used to do that somewhere...?
 
-AC_INIT([Source Ruckus Jammy System Builder], [sr_version], [veggiemike@sourceruckus.org], [sourceruckus-jammy])
+AC_INIT([Source Ruckus Noble System Builder], [sr_version], [veggiemike@sourceruckus.org], [sourceruckus-noble])
 AC_CONFIG_AUX_DIR([.])
 #AC_CONFIG_MACRO_DIR([m4])
 
