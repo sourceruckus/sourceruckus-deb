@@ -292,42 +292,31 @@ APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommend
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES)
 	touch $@
 
-# FIXME: jammy warnings on apt-key usage:
+# NOTE: We no longer use apt-key or the legacy trusted.gpg keyring
+#       because they were deprecated in jammy, and for good reason.
+#       See the DEPRECATION section in apt-key(8) for details.
 #
-#        apt-key add: Warning: apt-key is deprecated. Manage keyring
-#        files in trusted.gpg.d instead (see apt-key(8)).
-#
-#        apt update: W:
-#        https://sourceruckus.github.io/ppa/dists/jammy/InRelease: Key
-#        is stored in legacy trusted.gpg keyring
-#        (/etc/apt/trusted.gpg), see the DEPRECATION section in
-#        apt-key(8) for details.
-#
-# FIXME: we should really be putting all these keys in
-#        /etc/apt/keysrings and then putting [signed-by=...] in each
-#        sources file.
-#
-# see https://askubuntu.com/questions/1286545/what-commands-exactly-should-replace-the-deprecated-apt-key
+#       https://askubuntu.com/questions/1286545/what-commands-exactly-should-replace-the-deprecated-apt-key
 #
 sysroot/etc/apt/sources.list.d/sourceruckus.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) tee /etc/apt/trusted.gpg.d/sourceruckus.asc
-	echo "deb https://sourceruckus.github.io/ppa jammy main" > $@
+	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) tee /etc/apt/keyrings/sourceruckus.asc
+	echo "deb [signed-by=/etc/apt/keyrings/sourceruckus.asc] https://sourceruckus.github.io/ppa jammy main" > $@
 
 sysroot/etc/apt/sources.list.d/influxdb.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://repos.influxdata.com/influxdata-archive_compat.key | $(CHROOT) tee /etc/apt/trusted.gpg.d/influxdb.asc
-	echo "deb https://repos.influxdata.com/ubuntu jammy stable" > $@
+	wget -qO- https://repos.influxdata.com/influxdata-archive_compat.key | $(CHROOT) tee /etc/apt/keyrings/influxdb.asc
+	echo "deb [signed-by=/etc/apt/keyrings/influxdb.asc] https://repos.influxdata.com/ubuntu jammy stable" > $@
 
 sysroot/etc/apt/sources.list.d/grafana.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) tee /etc/apt/trusted.gpg.d/grafana.asc
-	echo "deb https://packages.grafana.com/oss/deb stable main" > $@
+	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) tee /etc/apt/keyrings/grafana.asc
+	echo "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://packages.grafana.com/oss/deb stable main" > $@
 
 sysroot/etc/apt/sources.list.d/wine.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://dl.winehq.org/wine-builds/winehq.key | $(CHROOT) tee /etc/apt/trusted.gpg.d/wine.asc
-	echo "deb https://dl.winehq.org/wine-builds/ubuntu jammy main" > $@
+	wget -qO- https://dl.winehq.org/wine-builds/winehq.key | $(CHROOT) tee /etc/apt/keyrings/wine.asc
+	echo "deb [signed-by=/etc/apt/keyrings/wine.asc] https://dl.winehq.org/wine-builds/ubuntu jammy main" > $@
 
 # NOTE: We do this instead of using add-apt-repository to make things a bit
 #	more consistent in here and to avoid multiple apt update calls.
@@ -341,7 +330,7 @@ sysroot/etc/apt/sources.list.d/wine.list: .build/RUCKUS-ES-APT
 # gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > ./linbit.gpg
 #
 # FIXME: we should really be putting all these keys in
-#        /etc/apt/keysrings and then putting [signed-by=...] in each
+#        /etc/apt/keyrings and then putting [signed-by=...] in each
 #        sources file.
 #
 # see https://askubuntu.com/questions/1286545/what-commands-exactly-should-replace-the-deprecated-apt-key
@@ -357,7 +346,7 @@ sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 	    --keyserver keyserver.ubuntu.com \
 	    --recv CC1B5A793C04BB3905AD837734893610CEAA9512
 	$(CHROOT) gpgconf --kill all
-	echo "deb http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu jammy main" > $@
+	echo "deb [signed-by=/etc/apt/keyrings/linbit.gpg] http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu jammy main" > $@
 
 sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
@@ -370,7 +359,7 @@ sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
 	    --keyserver keyserver.ubuntu.com \
 	    --recv 6B827C12C2D425E227EDCA75089EBE08314DF160
 	$(CHROOT) gpgconf --kill all
-	echo "deb https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu jammy main " > $@
+	echo "deb [signed-by=/etc/apt/keyrings/ubuntugis.gpg] https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu jammy main " > $@
 
 # NOTE: Definition of "3rd Party" in here is "upstream != Ubuntu".  That means
 #       our own Source Ruckus PPA is considered "3rd Party".
