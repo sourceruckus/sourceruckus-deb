@@ -365,12 +365,12 @@ sysroot/etc/apt/sources.list.d/sourceruckus.list: .build/RUCKUS-ES-APT
 sysroot/etc/apt/sources.list.d/influxdb.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://repos.influxdata.com/influxdata-archive_compat.key | $(CHROOT) tee /etc/apt/keyrings/influxdb.asc
-	echo "deb [signed-by=/etc/apt/keyrings/influxdb.asc] https://repos.influxdata.com/ubuntu noble stable" > $@
+	echo "deb [signed-by=/etc/apt/keyrings/influxdb.asc] https://repos.influxdata.com/debian stable main" > $@
 
 sysroot/etc/apt/sources.list.d/grafana.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) tee /etc/apt/keyrings/grafana.asc
-	echo "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://packages.grafana.com/oss/deb stable main" > $@
+	echo "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main" > $@
 
 sysroot/etc/apt/sources.list.d/wine.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
@@ -398,26 +398,22 @@ sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
 	$(CHROOT) gpgconf --launch gpg-agent
-	$(CHROOT) gpg --ignore-time-conflict --no-options --no-default-keyring \
-	    --secret-keyring /etc/apt/secring.gpg \
-	    --trustdb-name /etc/apt/trustdb.gpg \
-	    --keyring /etc/apt/trusted.gpg \
-	    --keyserver keyserver.ubuntu.com \
-	    --recv CC1B5A793C04BB3905AD837734893610CEAA9512
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --keyserver keyserver.ubuntu.com \
+	  --recv-keys CC1B5A793C04BB3905AD837734893610CEAA9512
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > /etc/apt/keyrings/linbit.gpg
 	$(CHROOT) gpgconf --kill all
+	rm sysroot/tmp/keybox.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/linbit.gpg] http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu noble main" > $@
 
 sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
 	$(CHROOT) gpgconf --launch gpg-agent
-	$(CHROOT) gpg --ignore-time-conflict --no-options --no-default-keyring \
-	    --secret-keyring /etc/apt/secring.gpg \
-	    --trustdb-name /etc/apt/trustdb.gpg \
-	    --keyring /etc/apt/trusted.gpg \
-	    --keyserver keyserver.ubuntu.com \
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --keyserver keyserver.ubuntu.com \
 	    --recv 6B827C12C2D425E227EDCA75089EBE08314DF160
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > /etc/apt/keyrings/ubuntugis.gpg
 	$(CHROOT) gpgconf --kill all
+	rm sysroot/tmp/keybox.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/ubuntugis.gpg] https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu noble main " > $@
 
 # NOTE: Definition of "3rd Party" in here is "upstream != Ubuntu".  That means
