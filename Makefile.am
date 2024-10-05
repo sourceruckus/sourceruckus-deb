@@ -432,28 +432,13 @@ sysroot/etc/apt/sources.list.d/wine.list: .build/RUCKUS-ES-APT
 
 # NOTE: We do this instead of using add-apt-repository to make things a bit
 #	more consistent in here and to avoid multiple apt update calls.
-#
-# FIXME: this is going to result in DEPRECATION warnings about
-#        apt-key... pretty sure i can pull the keys out after doing
-#        this and store them as files, but how do i just do that to
-#        begin with...?
-#
-# gpg --no-default-keyring --keyring /tmp/keybox.gpg --keyserver keyserver.ubuntu.com --recv-keys CC1B5A793C04BB3905AD837734893610CEAA9512
-# gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > ./linbit.gpg
-#
-# FIXME: we should really be putting all these keys in
-#        /etc/apt/keyrings and then putting [signed-by=...] in each
-#        sources file.
-#
-# see https://askubuntu.com/questions/1286545/what-commands-exactly-should-replace-the-deprecated-apt-key
-#
 sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
 	$(CHROOT) gpgconf --launch gpg-agent
 	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --keyserver keyserver.ubuntu.com \
 	  --recv-keys CC1B5A793C04BB3905AD837734893610CEAA9512
-	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > /etc/apt/keyrings/linbit.gpg
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > sysroot/etc/apt/keyrings/linbit.gpg
 	$(CHROOT) gpgconf --kill all
 	rm sysroot/tmp/keybox.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/linbit.gpg] http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu noble main" > $@
@@ -473,7 +458,7 @@ sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
 	$(CHROOT) gpgconf --launch gpg-agent
 	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --keyserver keyserver.ubuntu.com \
 	    --recv 6B827C12C2D425E227EDCA75089EBE08314DF160
-	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > /etc/apt/keyrings/ubuntugis.gpg
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > /sysroot/etc/apt/keyrings/ubuntugis.gpg
 	$(CHROOT) gpgconf --kill all
 	rm sysroot/tmp/keybox.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/ubuntugis.gpg] https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu noble main " > $@
