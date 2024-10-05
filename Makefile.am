@@ -458,6 +458,15 @@ sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 	rm sysroot/tmp/keybox.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/linbit.gpg] http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu noble main" > $@
 
+# FIXME: do i really need this one?  way back we got mbsystem from
+#        here, along with other things like gmt, i thought...  but
+#        after bionic (i think), mbsystem got dropped from Ubuntu-GIS
+#        and I started building it myself with jammy... but by that
+#        time i think all it's deps were in regular ubuntu...?
+#
+#        i think it still provides *newer* versions of packages,
+#        including qgis
+#
 sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
 	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
@@ -512,7 +521,7 @@ PPAS_ES: sysroot/etc/apt/sources.list.d/sourceruckus.list
 PPAS_ES: sysroot/etc/apt/sources.list.d/influxdb.list
 PPAS_ES: sysroot/etc/apt/sources.list.d/grafana.list
 PPAS_ES: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
-PPAS_ES: sysroot/etc/apt/sources.list.d/ubuntu-gis.list
+#PPAS_ES: sysroot/etc/apt/sources.list.d/ubuntu-gis.list
 PPAS_ES: sysroot/etc/apt/sources.list.d/wine.list
 endif
 
