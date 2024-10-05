@@ -287,6 +287,10 @@ PKGS_COMPILATION += fonts-noto-cjk-extra fonts-noto-color-emoji fonts-noto-extra
 PKGS_COMPILATION += fonts-noto-ui-core fonts-noto-ui-extra fonts-noto-unhinted
 PKGS_COMPILATION += libmath-random-isaac-xs-perl
 PKGS_COMPILATION += libasprintf-dev libgettextpo-dev elfutils
+# to build ltfs
+PKGS_COMPILATION += icu-devtools
+PKGS_COMPILATION += libfuse3-dev libfuse-dev libnet-snmp-perl libcrypt-des-perl libsnmp-dev libsnmp-perl
+PKGS_COMPILATION += libxml2-dev libxml2-utils libicu-dev
 if ES_DEVEL
 PKGS_ES += $(PKGS_COMPILATION)
 endif
