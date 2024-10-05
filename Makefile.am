@@ -644,8 +644,9 @@ PKGS_ESFILE += orthanc-doc javascript-common
 #PKGS_ESFILE += orthanc-postgresql
 PKGS_ESFILE += orthanc-webviewer
 PKGS_ESFILE += orthanc-wsi libopenslide0
+PKGS_ESFILE += ltfs
 PKGS_ESFILE += gmt gmt-dcw gmt-gshhg proj-bin #+315M
-#PKGS_ESFILE += mbsystem # FIXME: durp, UbuntuGIS dropped mbsystem in focal?
+PKGS_ESFILE += mbsystem
 
 # prepare an overlay mount on sysroot
 #
@@ -891,8 +892,9 @@ PKGS_WORKSTATION =
 # things we want from esfile
 PKGS_WORKSTATION += nfs-kernel-server
 PKGS_WORKSTATION += wsdd
+PKGS_WORKSTATION += ltfs
 PKGS_WORKSTATION += gmt gmt-dcw gmt-gshhg proj-bin
-#PKGS_WORKSTATION += mbsystem # FIXME: durp, UbuntuGIS dropped mbsystem in focal?
+PKGS_WORKSTATION += mbsystem
 # development stuff
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
 PKGS_WORKSTATION += kernel-builder
