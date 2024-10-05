@@ -291,6 +291,40 @@ PKGS_COMPILATION += libasprintf-dev libgettextpo-dev elfutils
 PKGS_COMPILATION += icu-devtools
 PKGS_COMPILATION += libfuse3-dev libfuse-dev libnet-snmp-perl libcrypt-des-perl libsnmp-dev libsnmp-perl
 PKGS_COMPILATION += libxml2-dev libxml2-utils libicu-dev
+# to build xen
+PKGS_COMPILATION += python3-dev
+PKGS_COMPILATION += bcc libcurl4-openssl-dev
+PKGS_COMPILATION += transfig tgif
+PKGS_COMPILATION += texlive-latex-base texlive-latex-recommended
+PKGS_COMPILATION += texlive-fonts-extra texlive-fonts-recommended mercurial
+PKGS_COMPILATION += python3-twisted
+PKGS_COMPILATION += libvncserver-dev libsdl1.2-dev libsdl2-dev libjpeg-dev
+PKGS_COMPILATION += libglib2.0-dev
+PKGS_COMPILATION += libnl-3-dev libnl-cli-3-dev libnl-genl-3-dev libnl-route-3-dev
+PKGS_COMPILATION += libnl-idiag-3-dev libnl-xfrm-3-dev
+PKGS_COMPILATION += iasl ocaml ocaml-findlib
+PKGS_COMPILATION += ocamlbuild libx11-dev libyajl-dev
+PKGS_COMPILATION += libpixman-1-dev pandoc figlet
+PKGS_COMPILATION += libc6-dev-i386
+PKGS_COMPILATION += lzma lzma-dev
+PKGS_COMPILATION += libsystemd-dev
+# recommends from the xen packages
+PKGS_COMPILATION += gcc-multilib libdecor-0-plugin-1-gtk #default-libdecor-0-plugin-1
+PKGS_COMPILATION += libgl1-amber-dri ocaml-man libtasn1-doc mesa-vulkan-drivers
+PKGS_COMPILATION += libfindlib-ocaml-dev ledit python3-click lmodern dvisvgm
+PKGS_COMPILATION += cm-super fonts-adf-accanthis fonts-adf-berenis fonts-adf-gillius
+PKGS_COMPILATION += fonts-adf-universalis fonts-cabin fonts-cantarell fonts-clear-sans
+PKGS_COMPILATION += fonts-comfortaa fonts-comic-neue fonts-croscore fonts-crosextra-caladea
+PKGS_COMPILATION += fonts-crosextra-carlito fonts-dejavu-core fonts-dejavu-extra
+PKGS_COMPILATION += fonts-ebgaramond-extra fonts-font-awesome fonts-gfs-artemisia
+PKGS_COMPILATION += fonts-gfs-complutum fonts-gfs-didot fonts-gfs-neohellenic fonts-gfs-olga
+PKGS_COMPILATION += fonts-gfs-solomos fonts-go fonts-inter fonts-lato fonts-linuxlibertine
+PKGS_COMPILATION += fonts-lobstertwo fonts-oflb-asana-math fonts-open-sans fonts-paratype
+PKGS_COMPILATION += fonts-roboto-slab fonts-roboto-unhinted fonts-sil-andika fonts-sil-charis
+PKGS_COMPILATION += fonts-sil-gentium fonts-sil-gentium-basic fonts-sil-gentiumplus
+PKGS_COMPILATION += fonts-sil-gentiumplus-compact fonts-stix texlive-fonts-extra-links
+PKGS_COMPILATION += texlive-latex-extra tex-gyre tipa xfonts-75dpi libfile-mimeinfo-perl
+PKGS_COMPILATION += libnet-dbus-perl libx11-protocol-perl x11-utils x11-xserver-utils
 if ES_DEVEL
 PKGS_ES += $(PKGS_COMPILATION)
 endif
