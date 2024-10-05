@@ -292,6 +292,11 @@ PKGS_COMPILATION += icu-devtools
 PKGS_COMPILATION += libfuse3-dev libfuse-dev libnet-snmp-perl libcrypt-des-perl libsnmp-dev libsnmp-perl
 PKGS_COMPILATION += libxml2-dev libxml2-utils libicu-dev
 # to build xen
+#
+# NOTE: Some of these may not technically be needed for building xen,
+#       but they were in my notes as being installed the last time I
+#       did this.
+#
 PKGS_COMPILATION += python3-dev
 PKGS_COMPILATION += bcc libcurl4-openssl-dev
 PKGS_COMPILATION += transfig tgif
@@ -325,6 +330,54 @@ PKGS_COMPILATION += fonts-sil-gentium fonts-sil-gentium-basic fonts-sil-gentiump
 PKGS_COMPILATION += fonts-sil-gentiumplus-compact fonts-stix texlive-fonts-extra-links
 PKGS_COMPILATION += texlive-latex-extra tex-gyre tipa xfonts-75dpi libfile-mimeinfo-perl
 PKGS_COMPILATION += libnet-dbus-perl libx11-protocol-perl x11-utils x11-xserver-utils
+# to build mbsystem (generic compilation toolchain stuff)
+#
+# NOTE: Some of these may not technically be needed for building mbsystem,
+#       but they were in my notes as being installed the last time I
+#       did this.
+#
+PKGS_COMPILATION += autoconf-archive diffstat gfortran
+PKGS_COMPILATION += gv libdevel-globaldestruction-perl
+PKGS_COMPILATION += libfile-remove-perl libgfortran5 libhash-ordered-perl
+PKGS_COMPILATION += libmail-box-perl libmail-message-perl libmail-transport-perl
+PKGS_COMPILATION += libmime-types-perl libobject-realize-later-perl
+PKGS_COMPILATION += libsub-exporter-progressive-perl libuser-identity-perl xaw3dg
+# to build mbsystem (xorg stuff)
+#
+# NOTE: Some of these may not technically be needed for building mbsystem,
+#       but they were in my notes as being installed the last time I
+#       did this.
+#
+PKGS_COMPILATION += xorg-dev mesa-common-dev libmotif-common libmotif-dev
+PKGS_COMPILATION += libsdl-image1.2-dev libsdl-mixer1.2-dev libsdl-ttf2.0-dev libsdl2-gfx-dev
+PKGS_COMPILATION += libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
+PKGS_COMPILATION += libgirepository1.0-dev
+PKGS_COMPILATION += python3-pygments libpipewire-0.3-common
+# to build mbsystem (gis stuff, some from ubuntu-gis ppa)
+#
+# FIXME: we need to actually prep the ubuntu-gis ppa before this will
+#        work...
+#
+# FIXME: that's what my notes said, but it doesn't seem like any of
+#        these are coming from the Ubuntu-GIS PPA...
+#
+PKGS_COMPILATION += gmt geotiff-bin gdal-bin libgeotiff-dev
+PKGS_COMPILATION += odbc-postgresql tdsodbc ogdi-bin
+PKGS_COMPILATION += gmt-gshhg libgmt-dev libgdal-grass libgnutls28-dev
+PKGS_COMPILATION += libidn11-dev libkrb5-dev libldap2-dev librtmp-dev libssh2-1-dev
+PKGS_COMPILATION += netcdf-bin libfftw3-bin libfftw3-dev # libfftw3-3 # not in noble?
+PKGS_COMPILATION += libfftw3-long3 libfftw3-quad3 libfftw3-double3 libfftw3-mpi-dev
+PKGS_COMPILATION += libfftw3-mpi3 libfftw3-single3 libproj-dev proj-bin
+PKGS_COMPILATION += libhdf4-alt-dev hdf4-tools
+PKGS_COMPILATION += grass-dev grass-gui e00compr avce00 gnuplot gpsbabel
+PKGS_COMPILATION += gpstrans python3-rpy2 python3-termcolor grass krb5-k5tls
+PKGS_COMPILATION += libmpfr-dev gnutls-bin libhwloc-contrib-plugins idn
+PKGS_COMPILATION += setserial libitpp-dev elpa-ess libparallel-forkmanager-perl gmt-dcw
+PKGS_COMPILATION += subversion python3-matplotlib libnamespace-clean-perl qttranslations5-l10n
+PKGS_COMPILATION += libpackage-stash-xs-perl qt5-gtk-platformtheme libwacom-bin python3-bs4
+PKGS_COMPILATION += python3-html5lib python3-chardet python3-olefile r-recommended
+PKGS_COMPILATION += r-base-dev
+
 if ES_DEVEL
 PKGS_ES += $(PKGS_COMPILATION)
 endif
