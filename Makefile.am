@@ -187,6 +187,7 @@ PKGS_ES += attr
 PKGS_ES += bind9-host bind9-dnsutils net-tools
 PKGS_ES += vlan bridge-utils ifenslave
 PKGS_ES += postfix #(no config, use dpkg-reconfigre to tweak later)
+PKGS_ES += libsasl2-modules
 PKGS_ES += mailutils
 PKGS_ES += zsh gkrellmd
 PKGS_ES += git-email
@@ -237,10 +238,12 @@ PKGS_COMPILATION += dwarves # needed by kernel CONFIG_DEBUG_INFO_BTF
 PKGS_COMPILATION += libkmod-dev libblkid-dev # for eudev
 PKGS_COMPILATION += libaio-dev # for lvm2
 PKGS_COMPILATION += liblz4-dev liblzma-dev libzstd-dev zlib1g-dev liblzo2-dev # for squashfs-tools
-PKGS_COMPILATION += libssl-dev # for zfs
+PKGS_COMPILATION += libssl-dev libtirpc-dev # for zfs
 PKGS_COMPILATION += libacl1-dev libattr1-dev libext2fs-dev libpopt-dev libltdl-dev xxhash libxxhash-dev # for rsync
 PKGS_COMPILATION += libefivar1t64 libefivar-dev libefiboot1t64 libefiboot-dev # for efibootmgr
 PKGS_COMPILATION += netpbm # for groff
+PKGS_COMPILATION += libbz2-dev libgcrypt20-dev # for fsarchiver
+PKGS_COMPILATION += libslang2-dev # for newt
 # add these for kernel compilation
 PKGS_COMPILATION += libncurses-dev libelf-dev
 # to build zfs deb packages
@@ -416,8 +419,8 @@ endif
 # NOTE: This is defined as an additional rule (instead of just adding more
 #       depends to RUCKUS-ES-3RDPARTY) to silence some automake warnings.
 #
-if !ES_DEVEL
 .PHONY: PPAS_ES
+if !ES_DEVEL
 PPAS_ES: sysroot/etc/apt/sources.list.d/sourceruckus.list
 PPAS_ES: sysroot/etc/apt/sources.list.d/influxdb.list
 PPAS_ES: sysroot/etc/apt/sources.list.d/grafana.list
@@ -426,10 +429,13 @@ PPAS_ES: sysroot/etc/apt/sources.list.d/ubuntu-gis.list
 PPAS_ES: sysroot/etc/apt/sources.list.d/wine.list
 endif
 
-.build/RUCKUS-ES-3RDPARTY: .build/RUCKUS-ES-APT PPAS_ES
+.build/RUCKUS-ES-3RDPARTY: .build/RUCKUS-ES-APT
 	$(MAKE) sysroot-mount-vfs
-	$(CHROOT) apt update
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES_3RDPARTY)
+	if [ -n "$(PKGS_ES_3RDPARTY)" ]; then \
+	  $(MAKE) PPAS_ES; \
+	  $(CHROOT) apt update; \
+	  cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES_3RDPARTY); \
+	fi
 	touch $@
 
 # the finalization step - set default boot target, disable some services, tweak
@@ -455,6 +461,9 @@ endif
 .build/RUCKUS-ES-FINAL: .build/RUCKUS-ES-3RDPARTY
 	$(MAKE) sysroot-mount-vfs
 	echo "rootfs / auto defaults 0 0" > sysroot/etc/fstab
+	mkdir -p sysroot/usr/lib/modules
+	mkdir -p sysroot/usr/lib/firmware
+	mkdir -p sysroot/usr/src
 	touch sysroot/etc/NetworkManager/conf.d/10-globally-managed-devices.conf
 	$(MKDIR_P) sysroot/scrap && cd sysroot/scrap && \
 	    git clone https://github.com/sourceruckus/awesome-powers.git && \
@@ -469,6 +478,15 @@ endif
 # FIXME: migrate to -comp zstd.  Ubuntu 18.04's squashfs doesn't support it,
 #        but we could always compile our own in /usr/local or something. (or
 #        provide a newer bionic deb via source ruckus ppa)
+#
+#        i can't believe it's 2024 and i'm still running bionic on my
+#        build box... need to prioritize upgrading that.  with lz4
+#        compression, es-devel.sqsh is 1.3G and the uncompressed
+#        contents of the sysroot dir after building is, wait for it,
+#        1.3G.  lame.  oh wait, the actual size on disk is more than
+#        twice that, but it's being compressed transparently by zfs.
+#        that means all the size measurements i've got in here are
+#        COMPRESSED sizes.
 #
 # NOTE: If --enable-devel, just swap out the name of this rule.
 #
