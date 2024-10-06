@@ -60,13 +60,51 @@ m4_foreach_w([P], NEEDED_PROGS,
 
 # FIXME: check sudo skills or that we're running as root
 
+# manage image list
+img_list=es.sqsh
+AC_ARG_ENABLE(es-file,
+  AS_HELP_STRING([--disable-es-file], [disable building specialized embedded file-server image, es-file.sqsh]),
+  es_file=$enableval,
+  es_file=yes)
+AS_IF([test "x$es_file" = "xyes"], img_list="$img_list es-file.sqsh")
+AC_ARG_ENABLE(es-auth,
+  AS_HELP_STRING([--disable-es-auth], [disable building specialized embedded auth-server image, es-auth.sqsh]),
+  es_auth=$enableval,
+  es_auth=yes)
+AS_IF([test "x$es_auth" = "xyes"], img_list="$img_list es-auth.sqsh")
+AC_ARG_ENABLE(es-web,
+  AS_HELP_STRING([--disable-es-web], [disable building specialized embedded web-server image, es-web.sqsh]),
+  es_web=$enableval,
+  es_web=yes)
+AS_IF([test "x$es_web" = "xyes"], img_list="$img_list es-web.sqsh")
+AC_ARG_ENABLE(server,
+  AS_HELP_STRING([--disable-server], [disable building server image, server.sqsh (depends on es.sqsh)]),
+  server=$enableval,
+  server=yes)
+AS_IF([test "x$server" = "xyes"], img_list="$img_list server.sqsh")
+AC_ARG_ENABLE(vmm,
+  AS_HELP_STRING([--disable-vmm], [disable building virtual machine monitor image, vmm.sqsh (depends on server.sqsh)]),
+  vmm=$enableval,
+  vmm=yes)
+AS_IF([test "x$vmm" = "xyes" -a "x$server" = "xyes"], img_list="$img_list vmm.sqsh")
+AC_ARG_ENABLE(workstation,
+  AS_HELP_STRING([--disable-workstation], [disable building workstation image, workstation.sqsh (depends on vmm.sqsh)]),
+  workstation=$enableval,
+  workstation=yes)
+AS_IF([test "x$workstation" = "xyes" -a "x$vmm" = "xyes"], img_list="$img_list workstation.sqsh")
+
+
 # build a devel-enabled base image
+AM_CONDITIONAL([ES_DEVEL], [test x$ES_DEVEL = xyes])
 AC_ARG_ENABLE(devel,
-  AS_HELP_STRING([--enable-devel], [Enable building es-devel.sqsh [default=no]]),
+  AS_HELP_STRING([--enable-devel], [enable building special embedded devolopemnt server, es-devel.sqsh, instead of the normal images]),
   es_devel=$enableval,
   es_devel=no)
+AS_IF([test "x$es_devel" = "xyes"], img_list=es-devel.sqsh)
 AC_SUBST(ES_DEVEL, $es_devel)
 AM_CONDITIONAL([ES_DEVEL], [test x$ES_DEVEL = xyes])
+
+AC_SUBST(IMG_LIST, $img_list)
 
 AC_CONFIG_FILES([Makefile
 		 ])
@@ -81,15 +119,6 @@ echo "------------------------------------------------------------------------"
 echo
 echo "Configuration Options Summary:"
 echo
-# FIXME: should really generate this list better, potentially with
-#       --enable-es-file, --enable-es-web, etc...
-#
 echo "Enabled Sqsh Images:"
-AS_IF([test "x$es_devel" != "xyes"],
-[
-echo "  es.sqsh es-file.sqsh es-web.sqsh vmm.sqsh workstation.sqsh"
-],
-[
-echo "  es-devel.sqsh"
-])
+echo "  $img_list"
 echo

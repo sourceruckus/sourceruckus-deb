@@ -23,11 +23,7 @@ CHROOT=chroot sysroot /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH
 
 # NOTE: If --enable-devel was sepcified, we're building a devel-enabled base
 #       image w/out 3rd party packages.
-if ES_DEVEL
-all: es-devel.sqsh
-else
-all: es.sqsh es-file.sqsh es-auth.sqsh es-web.sqsh server.sqsh vmm.sqsh workstation.sqsh
-endif
+all: @IMG_LIST@
 
 
 info:
