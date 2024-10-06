@@ -770,6 +770,7 @@ es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
 # virtual machine), so it's where we start to add in bootloader and
 # more hardware-centric things.
 #
+PKGS_SERVER =
 PKGS_SERVER += drbd-utils # from previously added upstream ppa
 PKGS_SERVER += $(PKGS_ZFS)
 PKGS_SERVER += $(PKGS_FILESHARING)
