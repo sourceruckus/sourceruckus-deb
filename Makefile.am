@@ -603,19 +603,6 @@ clean-local: sysroot-clean
 #
 # Based on ES, adds file-server specific packages.
 #
-# NOTE: This image includes upstream Wine (including full 32bit library
-#       support) so you can run Windows junk.  For example, at the vet hospital
-#       we run AVImarkServer.
-#
-# FIXME: The ship may have sailed here...  I don't use wine on the
-#        file server at the hospital anymore, and we don't do any
-#        processing on our file server on the Nautilus anymore, and I
-#        don't plan on ever doing zfs for the file-server again
-#        (performance in domU is horrible).  Might make more sense to
-#        stick nfs-kernel-server, and wsdd in es base and skip this
-#        detour.  We can install minidlna if neeed (it pulls in about
-#        200M of deps (450M if you do the recommends))...
-#
 PKGS_FILESHARING =
 PKGS_FILESHARING += nfs-kernel-server
 PKGS_FILESHARING += samba samba-dsdb-modules samba-vfs-modules
@@ -629,8 +616,6 @@ PKGS_ZFS += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
 PKGS_ZFS += sanoid # ubuntu ppa, but now using our zfs package
 
 PKGS_ESFILE =
-#PKGS_ESFILE += drbd-utils # from previously added upstream ppa
-#PKGS_ESFILE += $(PKGS_ZFS)
 PKGS_ESFILE += $(PKGS_FILESHARING)
 PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin pocketsphinx-en-us librsvg2-common libbdplus0
 # FIXME: at this rate, i'm probably never going to play with
@@ -681,27 +666,13 @@ upper_layer:
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ESFILE)
 	touch $@
 
-# add 32bit architecture support
-.build/RUCKUS-ESFILE-32bit: .build/RUCKUS-ESFILE-APT
-	$(MAKE) sysroot-mount-vfs
-	$(CHROOT) dpkg --add-architecture i386
-	$(CHROOT) apt update
-	touch $@
-
-# special install block for wine because we ONLY want to specify
-# --install-recommends for wine
-.build/RUCKUS-ESFILE-WINE: .build/RUCKUS-ESFILE-32bit
-	$(MAKE) sysroot-mount-vfs
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends winehq-stable
-	touch $@
-
 # service enable/dislabe, tweaks, etc
 #
 # FIXME: zfs services aren't enabled by default... did i do that on purpose?
 #
 # FIXME: audit services
 #
-.build/RUCKUS-ESFILE-FINAL: .build/RUCKUS-ESFILE-WINE
+.build/RUCKUS-ESFILE-FINAL: .build/RUCKUS-ESFILE-APT
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
 	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
@@ -868,7 +839,7 @@ sysroot-add-compilation:
 ################################################################################
 # Workstation
 #
-# Based off VMM (which exludes ES-file and ES-web additions), adds everything
+# Based off Server (which exludes ES-file and ES-web additions), adds everything
 # else we want in an awesome workstation of doom (including the kitchen sink).
 #
 # NOTE: This image includes upstream Wine (including full 32bit library
@@ -903,16 +874,14 @@ sysroot-add-compilation:
 .build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
 
 PKGS_WORKSTATION =
-# things we want from esfile
-PKGS_WORKSTATION += nfs-kernel-server
-PKGS_WORKSTATION += wsdd
-PKGS_WORKSTATION += ltfs
-PKGS_WORKSTATION += gmt gmt-dcw gmt-gshhg proj-bin
-PKGS_WORKSTATION += mbsystem
+PKGS_WORKSTATION += ubuntu-desktop # FIXME: we'll want to prune things out of this later
 # development stuff
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
 PKGS_WORKSTATION += kernel-builder
 PKGS_WORKSTATION += gcc-multilib g++-multilib gfortran-multilib
+# GIS stuff
+PKGS_WORKSTATION += gmt gmt-dcw gmt-gshhg proj-bin
+PKGS_WORKSTATION += mbsystem
 # everything else we want
 PKGS_WORKSTATION += gimp gimp-help-en gimp-data-extras gsfonts libbluray-bdj mesa-opencl-icd libvdpau-va-gl1
 PKGS_WORKSTATION += groff ghostscript imagemagick libpaper1 netpbm psutils
@@ -923,7 +892,7 @@ PKGS_WORKSTATION += audacity audacious
 PKGS_WORKSTATION += opus-tools librsvg2-bin speex vorbis-tools sox
 
 PKGS_WORKSTATION += va-driver-all vdpau-driver-all mesa-utils
-PKGS_WORKSTATION += mesa-vulkan-drivers # jammy already installed
+PKGS_WORKSTATION += mesa-vulkan-drivers
 
 PKGS_WORKSTATION += wireshark gkrellm gitk git-gui
 PKGS_WORKSTATION += vlc
@@ -936,6 +905,21 @@ sysroot/tmp/chrome.deb:
 
 PKGS_WORKSTATION_LOCAL =
 PKGS_WORKSTATION_LOCAL += chrome
+
+
+# add 32bit architecture support
+.build/RUCKUS-WORKSTATION-32bit: .build/RUCKUS-WORKSTATION-APT
+	$(MAKE) sysroot-mount-vfs
+	$(CHROOT) dpkg --add-architecture i386
+	$(CHROOT) apt update
+	touch $@
+
+# special install block for wine because we ONLY want to specify
+# --install-recommends for wine
+.build/RUCKUS-WORKSTATION-WINE: .build/RUCKUS-WORKSTATION-32bit
+	$(MAKE) sysroot-mount-vfs
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends winehq-stable
+	touch $@
 
 # Things for installer to do:
 #

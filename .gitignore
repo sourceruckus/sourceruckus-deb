@@ -26,9 +26,11 @@ Makefile.in
 /test-driver
 
 # built files
+es-auth.sqsh
 es-devel.sqsh
 es-file.sqsh
 es-web.sqsh
 es.sqsh
+server.sqsh
 vmm.sqsh
 workstation.sqsh
