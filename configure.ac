@@ -47,7 +47,6 @@ fi
 # check for needed programs
 AC_DEFUN([NEEDED_PROGS],
 	 [dnl list them here
-	  debootstrap
 	  wget
 	  bash
 	 ])
