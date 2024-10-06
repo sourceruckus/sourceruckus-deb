@@ -556,19 +556,10 @@ endif
 	$(CHROOT) systemctl mask rpc-svcgssd.service
 	touch $@
 
-# FIXME: migrate to -comp zstd.  Ubuntu 18.04's squashfs doesn't support it,
-#        but we could always compile our own in /usr/local or something. (or
-#        provide a newer bionic deb via source ruckus ppa)
-#
-#        i can't believe it's 2024 and i'm still running bionic on my
-#        build box... need to prioritize upgrading that.  with lz4
-#        compression, es-devel.sqsh is 1.3G and the uncompressed
-#        contents of the sysroot dir after building is, wait for it,
-#        1.3G.  lame.  oh wait, the actual size on disk is more than
-#        twice that, but it's being compressed transparently by zfs.
-#        that means all the size measurements i've got in here are
-#        COMPRESSED sizes.
-#
+
+#SQSH_COMP=-comp lz4 -Xhc
+SQSH_COMP=-comp zstd
+
 # NOTE: If --enable-devel, just swap out the name of this rule.
 #
 if ES_DEVEL
@@ -577,7 +568,7 @@ else
 es.sqsh: .build/RUCKUS-ES-FINAL
 endif
 	$(MAKE) sysroot-umount-vfs
-	mksquashfs sysroot $@ -comp lz4 -Xhc -noappend -wildcards
+	mksquashfs sysroot $@ $(SQSH_COMP) -noappend -wildcards
 
 sysroot-clean:
 	$(MAKE) sysroot-umount-vfs
@@ -697,7 +688,7 @@ upper_layer:
 # mksquashfs
 es-file.sqsh: es.sqsh .build/RUCKUS-ESFILE-FINAL
 	$(MAKE) sysroot-umount-vfs
-	mksquashfs upper_layer/upper $@ -comp lz4 -Xhc -noappend -wildcards
+	mksquashfs upper_layer/upper $@ $(SQSH_COMP) -noappend -wildcards
 
 
 ################################################################################
@@ -766,7 +757,7 @@ sysroot/tmp/chrome.deb:
 
 es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
 	$(MAKE) sysroot-umount-vfs
-	mksquashfs upper_layer/upper $@ -comp lz4 -Xhc -noappend -wildcards
+	mksquashfs upper_layer/upper $@ $(SQSH_COMP) -noappend -wildcards
 
 
 ################################################################################
@@ -827,7 +818,7 @@ PKGS_VMM += xen
 
 vmm.sqsh: .build/RUCKUS-VMM-FINAL
 	$(MAKE) sysroot-umount-vfs
-	mksquashfs upper_layer/upper $@ -comp lz4 -Xhc -noappend -wildcards
+	mksquashfs upper_layer/upper $@ $(SQSH_COMP) -noappend -wildcards
 
 # special target for adding compilation toolchain to an already
 # prepped sysroot
