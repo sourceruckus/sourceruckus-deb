@@ -26,7 +26,7 @@ CHROOT=chroot sysroot /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH
 if ES_DEVEL
 all: es-devel.sqsh
 else
-all: es.sqsh es-file.sqsh es-web.sqsh vmm.sqsh workstation.sqsh
+all: es.sqsh es-file.sqsh es-auth.sqsh es-web.sqsh server.sqsh vmm.sqsh workstation.sqsh
 endif
 
 
@@ -39,9 +39,13 @@ info:
 	@echo
 	@echo PKGS_ESFILE=\"$(PKGS_ESFILE)\"
 	@echo
+	@echo PKGS_ESAUTH=\"$(PKGS_ESAUTH)\"
+	@echo
 	@echo PKGS_ESWEB=\"$(PKGS_ESWEB)\"
 	@echo
 	@echo PKGS_ESWEB_LOCAL=\"$(PKGS_ESWEB_LOCAL)\"
+	@echo
+	@echo PKGS_SERVER=\"$(PKGS_SERVER)\"
 	@echo
 	@echo PKGS_VMM=\"$(PKGS_VMM)\"
 	@echo
@@ -50,6 +54,8 @@ info:
 	@echo PKGS_COMPILATION=\"$(PKGS_COMPILATION)\"
 	@echo
 	@echo PKGS_ZFS=\"$(PKGS_ZFS)\"
+	@echo
+	@echo PKGS_FILESHARING=\"$(PKGS_FILESHARING)\"
 
 # stage1 - 211M
 #
@@ -180,7 +186,7 @@ PKGS_ES += iptables-persistent #(yes for saving rules, dpkg-reconfigure later?)
 PKGS_ES += tshark #(yes for non-root capture, dpkg-reconfigure wireshark-common later?)
 PKGS_ES += openssh-server ntp sntp ncurses-term
 PKGS_ES += dnsmasq
-PKGS_ES += cifs-utils smbclient samba attr samba-dsdb-modules samba-vfs-modules
+PKGS_ES += cifs-utils smbclient attr
 PKGS_ES += keyutils winbind libnss-winbind libpam-winbind
 PKGS_ES += acl
 PKGS_ES += attr
@@ -574,8 +580,12 @@ sysroot-clean:
 	$(MAKE) sysroot-umount-vfs
 	umount -l sqsh_layer-vmm || echo not mounted
 	rm -rf sqsh_layer-vmm
+	umount -l sqsh_layer-server || echo not mounted
+	rm -rf sqsh_layer-server
 	umount -l sqsh_layer-es-web || echo not mounted
 	rm -rf sqsh_layer-es-web
+	umount -l sqsh_layer-es-auth || echo not mounted
+	rm -rf sqsh_layer-es-auth
 	umount -l sqsh_layer-es-file || echo not mounted
 	rm -rf sqsh_layer-es-file
 	umount -l sqsh_layer-es || echo not mounted
@@ -599,30 +609,45 @@ clean-local: sysroot-clean
 #       support) so you can run Windows junk.  For example, at the vet hospital
 #       we run AVImarkServer.
 #
-PKGS_ESFILE =
-PKGS_ESFILE += nfs-kernel-server
-PKGS_ESFILE += drbd-utils # from previously added upstream ppa
+# FIXME: The ship may have sailed here...  I don't use wine on the
+#        file server at the hospital anymore, and we don't do any
+#        processing on our file server on the Nautilus anymore, and I
+#        don't plan on ever doing zfs for the file-server again
+#        (performance in domU is horrible).  Might make more sense to
+#        stick nfs-kernel-server, and wsdd in es base and skip this
+#        detour.  We can install minidlna if neeed (it pulls in about
+#        200M of deps (450M if you do the recommends))...
+#
+PKGS_FILESHARING =
+PKGS_FILESHARING += nfs-kernel-server
+PKGS_FILESHARING += samba samba-dsdb-modules samba-vfs-modules
+PKGS_FILESHARING += wsdd
+
 PKGS_ZFS =
 PKGS_ZFS += zfs # our package, from sourceruckus ppa
 PKGS_ZFS += zfs-auto-snapshot # ubuntu ppa, but now using our zfs package
 # deps for sanoid, so we can use a development snapshot if desired
 PKGS_ZFS += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
 PKGS_ZFS += sanoid # ubuntu ppa, but now using our zfs package
-PKGS_ESFILE += $(PKGS_ZFS)
-PKGS_ESFILE += minidlna #FIXME: jammy already installed?:  libaacs0 libgdk-pixbuf2.0-bin librsvg2-common libbdplus0
-PKGS_ESFILE += wsdd
+
+PKGS_ESFILE =
+#PKGS_ESFILE += drbd-utils # from previously added upstream ppa
+#PKGS_ESFILE += $(PKGS_ZFS)
+PKGS_ESFILE += $(PKGS_FILESHARING)
+PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin pocketsphinx-en-us librsvg2-common libbdplus0
+# FIXME: at this rate, i'm probably never going to play with
+#        orthanc... so commenting it out
+#
 # FIXME: is the orthanc stuff going to need apache2?
-PKGS_ESFILE += orthanc
-PKGS_ESFILE += orthanc-dicomweb
-PKGS_ESFILE += orthanc-doc javascript-common
-#PKGS_ESFILE += orthanc-imagej mesa-vulkan-drivers libatk-wrapper-java-jni fonts-dejavu-extra
-#PKGS_ESFILE += orthanc-mysql
-#PKGS_ESFILE += orthanc-postgresql
-PKGS_ESFILE += orthanc-webviewer
-PKGS_ESFILE += orthanc-wsi libopenslide0
-PKGS_ESFILE += ltfs
-PKGS_ESFILE += gmt gmt-dcw gmt-gshhg proj-bin #+315M
-PKGS_ESFILE += mbsystem
+#PKGS_ESFILE += orthanc
+#PKGS_ESFILE += orthanc-dicomweb
+#PKGS_ESFILE += orthanc-doc javascript-common
+##PKGS_ESFILE += orthanc-imagej mesa-vulkan-drivers libatk-wrapper-java-jni fonts-dejavu-extra
+##PKGS_ESFILE += orthanc-mysql
+##PKGS_ESFILE += orthanc-postgresql
+#PKGS_ESFILE += orthanc-webviewer
+#PKGS_ESFILE += orthanc-wsi libopenslide0
+
 
 # prepare an overlay mount on sysroot
 #
@@ -692,6 +717,18 @@ es-file.sqsh: es.sqsh .build/RUCKUS-ESFILE-FINAL
 
 
 ################################################################################
+# ES-auth
+#
+# Based on ES, not ES-file, and adds auth-server stuff.
+#
+# NOTE: Currently just samba, for samba-active-directory, but we could
+#       branch out and try other products.
+#
+PKGS_ESAUTH =
+PKGS_ESAUTH += samba
+
+
+################################################################################
 # ES-web
 #
 # Based on ES, not ES-file, and adds web-server stuff.
@@ -711,20 +748,16 @@ PKGS_ESWEB += grafana # upstream ppa added already
 #        delivers its own mongodb, too
 #PKGS_ESWEB += mongodb-server mongo-tools # for unifi
 
-# FIXME: Considered adding the unifi deb to my ppa... but I'm pretty sure it
-#        adds it's own ppa as upstream for updates, so that's probably a bad
-#        idea.  Instead, we'll have a list of local .debs to install (and rules
-#        to download them via wget).
+# NOTE: I considered adding the unifi deb to my ppa... but I'm pretty
+#       sure it adds it's own ppa as upstream for updates, so that's
+#       probably a bad idea.  Instead, we'll have a list of local
+#       .debs to install (and rules to download them via wget).
 #
 PKGS_ESWEB_LOCAL =
 PKGS_ESWEB_LOCAL += unifi
-#PKGS_ESWEB_LOCAL += chrome
 
 sysroot/tmp/unifi.deb:
 	wget -qO- https://dl.ui.com/unifi/7.1.66/unifi_sysvinit_all.deb > $@
-
-sysroot/tmp/chrome.deb:
-	wget -qO- https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb > $@
 
 .build/RUCKUS-ESWEB-CLEAN:
 	$(MAKE) sysroot-clean
@@ -761,36 +794,36 @@ es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
 
 
 ################################################################################
+# Server
+#
+# Based on ES, not ES-file, ES-web, or ES-auth, this is the first
+# layer that is intended for use on physical hardware (i.e., not a
+# virtual machine), so it's where we start to add in bootloader and
+# more hardware-centric things.
+#
+PKGS_SERVER += drbd-utils # from previously added upstream ppa
+PKGS_SERVER += $(PKGS_ZFS)
+PKGS_SERVER += $(PKGS_FILESHARING)
+PKGS_SERVER += ruckusrd
+PKGS_SERVER += firmwarenator
+PKGS_SERVER += microcodenator
+PKGS_SERVER += syslinux syslinux-common dosfstools extlinux isolinux syslinux-efi syslinux-utils
+PKGS_SERVER += efibootmgr
+PKGS_SERVER += efitools efivar
+PKGS_SERVER += fwupd fwupd-signed
+PKGS_SERVER += smartmontools
+PKGS_SERVER += lm-sensors fancontrol read-edid i2c-tools
+PKGS_SERVER += ltfs
+
+
+################################################################################
 # VMM (Xen Dom0)
 #
-# Based on ES, not ES-file or ES-web, adds things needed for our VMM setup.
-# This is the first layer that is intended for use on physical hardware (i.e.,
-# not a virtual machine), so it's where we start to add in bootloader and more
-# hardware-centric things.
+# Based on Server, adds things needed for our VMM setup.
 #
-# - apt
-#   - efibootmgr
-#   - syslinux extlinux isolinux
-#   - ntfs3g?
-#   - fwupd
-#   - dkms? (probably wait until we have compiler for that)
-#   - smartmontools
-#   - drbd9 (should I wait until here and use upstream ppa?)
-# - compile/apt
-#   - ruckusrd (if we haven't already)
-#   - xen
+# NOTE: Currently just xen, but we could add other products here later.
+#
 PKGS_VMM =
-PKGS_VMM += drbd-utils # from previously added upstream ppa
-PKGS_VMM += $(PKGS_ZFS)
-PKGS_VMM += ruckusrd
-PKGS_VMM += firmwarenator
-PKGS_VMM += microcodenator
-PKGS_VMM += syslinux syslinux-common dosfstools extlinux isolinux syslinux-efi syslinux-utils
-PKGS_VMM += efibootmgr
-PKGS_VMM += efitools efivar
-PKGS_VMM += fwupd fwupd-signed
-PKGS_VMM += smartmontools
-PKGS_VMM += lm-sensors fancontrol read-edid i2c-tools
 PKGS_VMM += xen
 
 .build/RUCKUS-VMM-CLEAN:
@@ -833,8 +866,8 @@ sysroot-add-compilation:
 # Based off VMM (which exludes ES-file and ES-web additions), adds everything
 # else we want in an awesome workstation of doom (including the kitchen sink).
 #
-# NOTE: Similar to ES-file, we want a full multilib setup with upstream Wine for
-#       the Workstation.
+# NOTE: This image includes upstream Wine (including full 32bit library
+#       support) so you can run Windows junk.
 #
 # - 32bit update
 # - via apt
@@ -885,7 +918,7 @@ PKGS_WORKSTATION += audacity audacious
 PKGS_WORKSTATION += opus-tools librsvg2-bin speex vorbis-tools sox
 
 PKGS_WORKSTATION += va-driver-all vdpau-driver-all mesa-utils
-#PKGS_WORKSTATION += mesa-vulkan-drivers # jammy already installed
+PKGS_WORKSTATION += mesa-vulkan-drivers # jammy already installed
 
 PKGS_WORKSTATION += wireshark gkrellm gitk git-gui
 PKGS_WORKSTATION += vlc
@@ -893,6 +926,11 @@ PKGS_WORKSTATION += gnome-tweaks rdesktop
 PKGS_WORKSTATION += emacs-gtk # replaces emacs-nox
 PKGS_WORKSTATION += wine
 
+sysroot/tmp/chrome.deb:
+	wget -qO- https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb > $@
+
+PKGS_WORKSTATION_LOCAL =
+PKGS_WORKSTATION_LOCAL += chrome
 
 # Things for installer to do:
 #
