@@ -18,6 +18,9 @@ EXTRA_DIST += $(top_docs)
 #        easy, as you just unmount... but we'd be requiring a bit more RAM
 #        (probably an extra 2G or so to be safe).
 #
+# FIXME: actually, i did start using tmpfs for upper_layer at some
+#        point already... see other FIXMEs
+#
 CHROOT=chroot sysroot /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH
 
 
@@ -89,12 +92,6 @@ sysroot/dev/block:
 #
 # This is going to be used for most of our domUs.  Should include what's needed
 # for srv-router, srv-net, srv-auth.
-#
-# FIXME: we could split srv-auth's extra stuff into ES-auth if we really
-#        want... but it strikes me as overkill.  It's really just the
-#        difference between including the samba package or not (~45M).  That
-#        would also make our base image unable to export files via smbd, but
-#        that might be fine.
 #
 sysroot-mount-vfs: sysroot/proc/self sysroot/sys/block sysroot/dev/block
 
@@ -562,7 +559,7 @@ endif
 	$(CHROOT) systemctl disable dnsmasq
 	$(CHROOT) systemctl disable rpc-svcgssd.service
 	$(CHROOT) systemctl mask rpc-svcgssd.service
-	rm -v sysroot/tmp/*
+	rm -fv sysroot/tmp/*
 	touch $@
 
 
@@ -647,11 +644,7 @@ PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin pocketsphinx-en-us librsvg
 #        long term, we should check for an appropriate fs via configure and add
 #        --with-tmpfs-upper=SIZE argument.
 #
-# FIXME: shoot, making this depend on es.sqsh seems to be messing things up.
-#        if sqsh_layer-es already exists, make is still executing this
-#        rule... did i dork up a timestamp or something?
-#
-sqsh_layer-es:
+sqsh_layer-es: es.sqsh
 	$(MKDIR_P) $@
 	mount es.sqsh $@
 
@@ -659,11 +652,9 @@ upper_layer:
 	$(MKDIR_P) $@
 	mount -t tmpfs none $@
 
-.build/RUCKUS-ESFILE-CLEAN: es.sqsh
+.build/RUCKUS-ESFILE-OVL:
 	$(MAKE) sysroot-clean
-	touch $@
-
-.build/RUCKUS-ESFILE-OVL: .build/RUCKUS-ESFILE-CLEAN sqsh_layer-es upper_layer
+	$(MAKE) sqsh_layer-es upper_layer
 	$(MKDIR_P) sysroot upper_layer/{upper,work}
 	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
@@ -680,7 +671,7 @@ upper_layer:
 #
 .build/RUCKUS-ESFILE-FINAL: .build/RUCKUS-ESFILE-APT
 	$(MAKE) sysroot-mount-vfs
-	rm -v sysroot/tmp/*
+	rm -fv sysroot/tmp/*
 	touch $@
 
 # mksquashfs
@@ -701,11 +692,9 @@ PKGS_ESAUTH =
 PKGS_ESAUTH += samba
 PKGS_ESAUTH += python3-idna samba-dsdb-modules samba-vfs-modules samba-ad-provision
 
-.build/RUCKUS-ESAUTH-CLEAN: es.sqsh
+.build/RUCKUS-ESAUTH-OVL:
 	$(MAKE) sysroot-clean
-	touch $@
-
-.build/RUCKUS-ESAUTH-OVL: .build/RUCKUS-ESAUTH-CLEAN sqsh_layer-es upper_layer
+	$(MAKE) sqsh_layer-es upper_layer
 	$(MKDIR_P) sysroot upper_layer/{upper,work}
 	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
@@ -722,7 +711,7 @@ PKGS_ESAUTH += python3-idna samba-dsdb-modules samba-vfs-modules samba-ad-provis
 #
 .build/RUCKUS-ESAUTH-FINAL: .build/RUCKUS-ESAUTH-APT
 	$(MAKE) sysroot-mount-vfs
-	rm -v sysroot/tmp/*
+	rm -fv sysroot/tmp/*
 	touch $@
 
 es-auth.sqsh: .build/RUCKUS-ESAUTH-FINAL
@@ -771,11 +760,9 @@ PKGS_ESWEB += grafana # upstream ppa added already
 #sysroot/tmp/unifi.deb:
 #	wget -qO- https://dl.ui.com/unifi/7.1.66/unifi_sysvinit_all.deb > $@
 
-.build/RUCKUS-ESWEB-CLEAN: es.sqsh
+.build/RUCKUS-ESWEB-OVL:
 	$(MAKE) sysroot-clean
-	touch $@
-
-.build/RUCKUS-ESWEB-OVL: .build/RUCKUS-ESWEB-CLEAN sqsh_layer-es upper_layer
+	$(MAKE) sqsh_layer-es upper_layer
 	$(MKDIR_P) sysroot upper_layer/{upper,work}
 	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
@@ -798,7 +785,7 @@ PKGS_ESWEB += grafana # upstream ppa added already
 #
 .build/RUCKUS-ESWEB-FINAL: .build/RUCKUS-ESWEB-APT
 	$(MAKE) sysroot-mount-vfs
-	rm -v sysroot/tmp/*
+	rm -fv sysroot/tmp/*
 	touch $@
 
 es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
@@ -838,11 +825,9 @@ PKGS_SERVER += udisks2
 PKGS_SERVER += lm-sensors fancontrol read-edid i2c-tools
 PKGS_SERVER += ltfs
 
-.build/RUCKUS-SERVER-CLEAN: es.sqsh
+.build/RUCKUS-SERVER-OVL:
 	$(MAKE) sysroot-clean
-	touch $@
-
-.build/RUCKUS-SERVER-OVL: .build/RUCKUS-SERVER-CLEAN sqsh_layer-es upper_layer
+	$(MAKE) sqsh_layer-es upper_layer
 	$(MKDIR_P) sysroot upper_layer/{upper,work}
 	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
@@ -864,7 +849,7 @@ PKGS_SERVER += ltfs
 	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
 	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
 	  zfs.target
-	rm -v sysroot/tmp/*
+	rm -fv sysroot/tmp/*
 	touch $@
 
 server.sqsh: .build/RUCKUS-SERVER-FINAL
@@ -881,24 +866,20 @@ server.sqsh: .build/RUCKUS-SERVER-FINAL
 #
 PKGS_VMM =
 PKGS_VMM += xen
+PKGS_VMM += qemu-system-x86 grub-xen-host qemu-utils seabios ovmf
+PKGS_VMM += default-libdecor-0-plugin-1
+PKGS_VMM += librsvg2-common os-prober at-spi2-core libgdk-pixbuf2.0-bin libgtk-3-bin
+PKGS_VMM += ipxe-qemu-256k-compat-efi-roms qemu-system-gui qemu-system-modules-spice
+PKGS_VMM += qemu-system-modules-opengl qemu-block-extra cpu-checker
+PKGS_VMM += libgl1-amber-dri
 
-.build/RUCKUS-VMM-CLEAN: server.sqsh
-	$(MAKE) sysroot-clean
-	touch $@
-
-sqsh_layer-server:
+sqsh_layer-server: server.sqsh
 	$(MKDIR_P) $@
 	mount server.sqsh $@
 
-# FIXME: why is this target not tripping the sqsh_layer-es and
-#        upper_layer rules...?  Manually doing a 'make sqsh_layer-es',
-#        'make sqsh_layer-server', 'make upper_layer' seems to work,
-#        buth then 'make .build/RUCKUS-VMM-OVL' started over with
-#        RUCKUS-SERVER-OVL...?
-#
-#        was Makefile newer than the server.sqsh or something?
-#
-.build/RUCKUS-VMM-OVL: .build/RUCKUS-VMM-CLEAN sqsh_layer-es sqsh_layer-server upper_layer
+.build/RUCKUS-VMM-OVL:
+	$(MAKE) sysroot-clean
+	$(MAKE) sqsh_layer-es sqsh_layer-server upper_layer
 	$(MKDIR_P) sysroot upper_layer/{upper,work}
 	mount -t overlay -o lowerdir=sqsh_layer-server:sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
@@ -915,7 +896,7 @@ sqsh_layer-server:
 #
 .build/RUCKUS-VMM-FINAL: .build/RUCKUS-VMM-APT
 	$(MAKE) sysroot-mount-vfs
-	rm -v sysroot/tmp/*
+	rm -fv sysroot/tmp/*
 	touch $@
 
 vmm.sqsh: .build/RUCKUS-VMM-FINAL
