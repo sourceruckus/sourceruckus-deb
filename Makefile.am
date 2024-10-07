@@ -220,6 +220,14 @@ PKGS_ES += sysstat
 PKGS_ES += nmap
 PKGS_ES += apt-file
 PKGS_ES += fsarchiver
+PKGS_ES += bzip2
+PKGS_ES += manpages
+
+# FIXME: would add nftables so I can play with it, but afraid it will
+#        mess with iptables
+#
+# nftables iptables-nftables-compat
+
 # compilation toolchain and additional development tools and libraries (~1.3G)
 #
 # NOTE: We normally leave all these development packages until VMM or
@@ -554,9 +562,13 @@ endif
 	$(CHROOT) systemctl disable dnsmasq
 	$(CHROOT) systemctl disable rpc-svcgssd.service
 	$(CHROOT) systemctl mask rpc-svcgssd.service
+	rm -v sysroot/tmp/*
 	touch $@
 
 
+# FIXME: configure flag for this?  or maybe have configure check for
+#        zstd support in mksquashfs?
+#
 #SQSH_COMP=-comp lz4 -Xhc
 SQSH_COMP=-comp zstd
 
@@ -647,7 +659,7 @@ upper_layer:
 	$(MKDIR_P) $@
 	mount -t tmpfs none $@
 
-.build/RUCKUS-ESFILE-CLEAN:
+.build/RUCKUS-ESFILE-CLEAN: es.sqsh
 	$(MAKE) sysroot-clean
 	touch $@
 
@@ -664,19 +676,15 @@ upper_layer:
 
 # service enable/dislabe, tweaks, etc
 #
-# FIXME: zfs services aren't enabled by default... did i do that on purpose?
-#
 # FIXME: audit services
 #
 .build/RUCKUS-ESFILE-FINAL: .build/RUCKUS-ESFILE-APT
 	$(MAKE) sysroot-mount-vfs
-	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
-	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
-	  zfs.target
+	rm -v sysroot/tmp/*
 	touch $@
 
 # mksquashfs
-es-file.sqsh: es.sqsh .build/RUCKUS-ESFILE-FINAL
+es-file.sqsh: .build/RUCKUS-ESFILE-FINAL
 	$(MAKE) sysroot-umount-vfs
 	mksquashfs upper_layer/upper $@ $(SQSH_COMP) -noappend -wildcards
 
@@ -691,6 +699,35 @@ es-file.sqsh: es.sqsh .build/RUCKUS-ESFILE-FINAL
 #
 PKGS_ESAUTH =
 PKGS_ESAUTH += samba
+PKGS_ESAUTH += python3-idna samba-dsdb-modules samba-vfs-modules samba-ad-provision
+
+.build/RUCKUS-ESAUTH-CLEAN: es.sqsh
+	$(MAKE) sysroot-clean
+	touch $@
+
+.build/RUCKUS-ESAUTH-OVL: .build/RUCKUS-ESAUTH-CLEAN sqsh_layer-es upper_layer
+	$(MKDIR_P) sysroot upper_layer/{upper,work}
+	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
+	touch $@
+
+# apt install
+.build/RUCKUS-ESAUTH-APT: .build/RUCKUS-ESAUTH-OVL
+	$(MAKE) sysroot-mount-vfs
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ESAUTH)
+	touch $@
+
+# service enable/disable, tweaks, etc
+#
+# FIXME: audit services
+#
+.build/RUCKUS-ESAUTH-FINAL: .build/RUCKUS-ESAUTH-APT
+	$(MAKE) sysroot-mount-vfs
+	rm -v sysroot/tmp/*
+	touch $@
+
+es-auth.sqsh: .build/RUCKUS-ESAUTH-FINAL
+	$(MAKE) sysroot-umount-vfs
+	mksquashfs upper_layer/upper $@ $(SQSH_COMP) -noappend -wildcards
 
 
 ################################################################################
@@ -701,7 +738,7 @@ PKGS_ESAUTH += samba
 PKGS_ESWEB =
 PKGS_ESWEB += apache2 ssl-cert
 PKGS_ESWEB += javascript-common
-PKGS_ESWEB += influxdb2 influxdb2-cli # upstream ppa added already
+PKGS_ESWEB += influxdb #  upstream ppa added already
 PKGS_ESWEB += grafana # upstream ppa added already
 ### NOT starting on installation, please execute the following statements to configure grafana to start automatically using systemd
 # sudo /bin/systemctl daemon-reload
@@ -718,13 +755,23 @@ PKGS_ESWEB += grafana # upstream ppa added already
 #       probably a bad idea.  Instead, we'll have a list of local
 #       .debs to install (and rules to download them via wget).
 #
-PKGS_ESWEB_LOCAL =
-PKGS_ESWEB_LOCAL += unifi
+# FIXME: ubiquiti now has it's own ppa, yay
+#
+# FIXME: it also needs us to add the mongodb ppa, though.
+#
+# https://help.ui.com/hc/en-us/articles/220066768-Updating-and-Installing-Self-Hosted-UniFi-Network-Servers-Linux
+#
+# https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/
+#
+# https://pcmasterx.com/index.php/blog/unifi-network-controller-install-on-ubuntu-server-24-04
+#
+#PKGS_ESWEB_LOCAL =
+#PKGS_ESWEB_LOCAL += unifi
 
-sysroot/tmp/unifi.deb:
-	wget -qO- https://dl.ui.com/unifi/7.1.66/unifi_sysvinit_all.deb > $@
+#sysroot/tmp/unifi.deb:
+#	wget -qO- https://dl.ui.com/unifi/7.1.66/unifi_sysvinit_all.deb > $@
 
-.build/RUCKUS-ESWEB-CLEAN:
+.build/RUCKUS-ESWEB-CLEAN: es.sqsh
 	$(MAKE) sysroot-clean
 	touch $@
 
@@ -740,17 +787,18 @@ sysroot/tmp/unifi.deb:
 	touch $@
 
 # fetch debs and install locally
-.build/RUCKUS-ESWEB-LOCAL: .build/RUCKUS-ESWEB-APT sysroot/tmp/unifi.deb
-	$(MAKE) sysroot-mount-vfs
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(patsubst %,/tmp/%.deb,$(PKGS_ESWEB_LOCAL))
-	touch $@
+#.build/RUCKUS-ESWEB-LOCAL: .build/RUCKUS-ESWEB-APT sysroot/tmp/unifi.deb
+#	$(MAKE) sysroot-mount-vfs
+#	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(patsubst %,/tmp/%.deb,$(PKGS_ESWEB_LOCAL))
+#	touch $@
 
 # service enable/disable, tweaks, etc
 #
 # FIXME: audit services
 #
-.build/RUCKUS-ESWEB-FINAL: .build/RUCKUS-ESWEB-LOCAL
+.build/RUCKUS-ESWEB-FINAL: .build/RUCKUS-ESWEB-APT
 	$(MAKE) sysroot-mount-vfs
+	rm -v sysroot/tmp/*
 	touch $@
 
 es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
@@ -776,6 +824,8 @@ PKGS_SERVER += microcodenator
 PKGS_SERVER += syslinux syslinux-common dosfstools extlinux isolinux syslinux-efi syslinux-utils
 PKGS_SERVER += efibootmgr
 PKGS_SERVER += efitools efivar
+PKGS_SERVER += secureboot-db
+PKGS_SERVER += powermgmt-base
 PKGS_SERVER += fwupd fwupd-signed
 PKGS_SERVER += smartmontools
 PKGS_SERVER += hdparm
@@ -788,6 +838,39 @@ PKGS_SERVER += udisks2
 PKGS_SERVER += lm-sensors fancontrol read-edid i2c-tools
 PKGS_SERVER += ltfs
 
+.build/RUCKUS-SERVER-CLEAN: es.sqsh
+	$(MAKE) sysroot-clean
+	touch $@
+
+.build/RUCKUS-SERVER-OVL: .build/RUCKUS-SERVER-CLEAN sqsh_layer-es upper_layer
+	$(MKDIR_P) sysroot upper_layer/{upper,work}
+	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
+	touch $@
+
+# apt install
+.build/RUCKUS-SERVER-APT: .build/RUCKUS-SERVER-OVL
+	$(MAKE) sysroot-mount-vfs
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_SERVER)
+	touch $@
+
+# service enable/dislabe, tweaks, etc
+#
+# FIXME: zfs services aren't enabled by default... did i do that on purpose?
+#
+# FIXME: audit services
+#
+.build/RUCKUS-SERVER-FINAL: .build/RUCKUS-SERVER-APT
+	$(MAKE) sysroot-mount-vfs
+	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
+	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
+	  zfs.target
+	rm -v sysroot/tmp/*
+	touch $@
+
+server.sqsh: .build/RUCKUS-SERVER-FINAL
+	$(MAKE) sysroot-umount-vfs
+	mksquashfs upper_layer/upper $@ $(SQSH_COMP) -noappend -wildcards
+
 
 ################################################################################
 # VMM (Xen Dom0)
@@ -799,13 +882,25 @@ PKGS_SERVER += ltfs
 PKGS_VMM =
 PKGS_VMM += xen
 
-.build/RUCKUS-VMM-CLEAN:
+.build/RUCKUS-VMM-CLEAN: server.sqsh
 	$(MAKE) sysroot-clean
 	touch $@
 
-.build/RUCKUS-VMM-OVL: .build/RUCKUS-VMM-CLEAN sqsh_layer-es upper_layer
+sqsh_layer-server:
+	$(MKDIR_P) $@
+	mount server.sqsh $@
+
+# FIXME: why is this target not tripping the sqsh_layer-es and
+#        upper_layer rules...?  Manually doing a 'make sqsh_layer-es',
+#        'make sqsh_layer-server', 'make upper_layer' seems to work,
+#        buth then 'make .build/RUCKUS-VMM-OVL' started over with
+#        RUCKUS-SERVER-OVL...?
+#
+#        was Makefile newer than the server.sqsh or something?
+#
+.build/RUCKUS-VMM-OVL: .build/RUCKUS-VMM-CLEAN sqsh_layer-es sqsh_layer-server upper_layer
 	$(MKDIR_P) sysroot upper_layer/{upper,work}
-	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
+	mount -t overlay -o lowerdir=sqsh_layer-server:sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
 
 # apt install
@@ -820,6 +915,7 @@ PKGS_VMM += xen
 #
 .build/RUCKUS-VMM-FINAL: .build/RUCKUS-VMM-APT
 	$(MAKE) sysroot-mount-vfs
+	rm -v sysroot/tmp/*
 	touch $@
 
 vmm.sqsh: .build/RUCKUS-VMM-FINAL
@@ -916,6 +1012,15 @@ PKGS_WORKSTATION_LOCAL += chrome
 .build/RUCKUS-WORKSTATION-WINE: .build/RUCKUS-WORKSTATION-32bit
 	$(MAKE) sysroot-mount-vfs
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends winehq-stable
+	touch $@
+
+# fetch debs and install locally
+#
+# FIXME: don't forget to rm /tmp/*.deb after this.
+#
+.build/RUCKUS-WORKSTATION-LOCAL: .build/RUCKUS-WORKSTATION-APT sysroot/tmp/unifi.deb
+	$(MAKE) sysroot-mount-vfs
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(patsubst %,/tmp/%.deb,$(PKGS_WORKSTATION_LOCAL))
 	touch $@
 
 # Things for installer to do:
