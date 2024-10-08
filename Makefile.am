@@ -16,16 +16,39 @@ EXTRA_DIST += $(top_docs)
 #
 
 CHROOT=chroot sysroot /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH
+DEBOOTSTRAP_DIR=$(abs_srcdir)/debootstrap
+DEBOOTSTRAP=$(DEBOOTSTRAP_DIR)/debootstrap
+#
+# NOTE: We want apt install to be completely noninteractive with pre-seeded
+#       values for all debconf questions.  My initial idea was to run through
+#       interactively and then just copy the resulting debconf config.dat into
+#       subsequent runs, but reading online kinda implies that that's the
+#       "wrong" thing to do, and that I should use either DEBCONF_DB_FALLBACK
+#       or DEBCONF_DB_OVERRIDE variables (set to either Pipe or File) to supply
+#       values...  both of those methods were providing strange errors,
+#       though...  so I tried just copying config.dat in directly as I'd
+#       originally planned and it worked fine... so that's what I'm doing.
+#
+# NOTE: While the debconf-config.dat workaround does answer the
+#       questions before they pop-up, it does NOT suppress other
+#       interactive things (e.g., needrestart service restart dialog).
+#       So we still also supply DEBIAN_FRONTEND=noninteractive.
+#
+APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
+APT_REMOVE=DEBIAN_FRONTEND=noninteractive apt remove -y --autoremove --purge
+#
+# FIXME: configure flag for this?  or maybe have configure check for
+#        zstd support in mksquashfs?
+#
+#SQSH_COMP=-comp lz4 -Xhc
+SQSH_COMP=-comp zstd
 
 
 # NOTE: If --enable-devel was sepcified, we're building a devel-enabled base
 #       image w/out 3rd party packages.
 all: @IMG_LIST@
 
-
 info:
-	@echo DEBOOTSTRAP=$(DEBOOTSTRAP)
-	@echo
 	@echo PKGS_ES=\"$(PKGS_ES)\"
 	@echo
 	@echo PKGS_ES_3RDPARTY=\"$(PKGS_ES_3RDPARTY)\"
@@ -44,30 +67,11 @@ info:
 	@echo
 	@echo PKGS_WORKSTATION_LOCAL\"$(PKGS_WORKSTATION_LOCAL)\"
 	@echo
-	@echo PKGS_COMPILATION=\"$(PKGS_COMPILATION)\"
+	@echo PKGS_FILESHARING=\"$(PKGS_FILESHARING)\"
 	@echo
 	@echo PKGS_ZFS=\"$(PKGS_ZFS)\"
 	@echo
-	@echo PKGS_FILESHARING=\"$(PKGS_FILESHARING)\"
-
-# stage1 - 211M
-#
-# NOTE: We change UID_MIN and GID_MIN to 500 in /etc/login.defs
-#       accross-the-board to differentiate local users from krb5 users.
-#       Otherwise, if krb server is unreachable, it takes a few minutes to
-#       authenticate local users.  We have to make this change as early as
-#       possible to keep apt install from adding users with uid higher than 500
-#       (i.e., if we wait until "finalization" of es.sqsh, it's too late -
-#       we've got gkrellmd and telegraf as 999 and 998).
-#
-DEBOOTSTRAP_DIR=$(abs_srcdir)/debootstrap
-DEBOOTSTRAP=$(DEBOOTSTRAP_DIR)/debootstrap
-.build/RUCKUS-DEBOOTSTRAP:
-	$(MAKE) sysroot-clean
-	$(MKDIR_P) $(dir $@)
-	DEBOOTSTRAP_DIR=$(DEBOOTSTRAP_DIR) $(DEBOOTSTRAP) --arch=amd64 noble sysroot http://archive.ubuntu.com/ubuntu/
-	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
-	touch $@
+	@echo PKGS_COMPILATION=\"$(PKGS_COMPILATION)\"
 
 sysroot/proc/self:
 	mount proc -t proc $(dir $@)
@@ -79,154 +83,138 @@ sysroot/dev/block:
 	mount --rbind /dev $(dir $@)
 	mount --make-rslave $(dir $@)
 
-
-
-################################################################################
-# ES (base)
-#
-# This is going to be used for most of our domUs.  Should include what's needed
-# for srv-router, srv-net, srv-auth.
-#
 sysroot-mount-vfs: sysroot/proc/self sysroot/sys/block sysroot/dev/block
 
 sysroot-umount-vfs:
 	umount -R sysroot/{proc,sys,dev} || echo already unmounted
 
-# after updates, sysroot is ~280M
-.build/RUCKUS-ES-APT-PREP: .build/RUCKUS-DEBOOTSTRAP
+sqsh_layer-es: es.sqsh
+	$(MKDIR_P) $@
+	mount es.sqsh $@
+
+sqsh_layer-server: server.sqsh
+	$(MKDIR_P) $@
+	mount server.sqsh $@
+
+sqsh_layer-vmm: vmm.sqsh
+	$(MKDIR_P) $@
+	mount vmm.sqsh $@
+
+upper_layer:
+	$(MKDIR_P) $@
+
+# FIXME: i don't remember exactly why i do a umount -l here... and
+#       it's causing problems occasionally with sysroot (when it's
+#       overlay).  manually unmounting and trying again seems to work,
+#       so i'm wonderingy if i should just drop the -l.
+#
+sysroot-clean:
+	$(MAKE) sysroot-umount-vfs
+	umount -l sqsh_layer-vmm || echo not mounted
+	rm -rf sqsh_layer-vmm
+	umount -l sqsh_layer-server || echo not mounted
+	rm -rf sqsh_layer-server
+	umount -l sqsh_layer-es-web || echo not mounted
+	rm -rf sqsh_layer-es-web
+	umount -l sqsh_layer-es-auth || echo not mounted
+	rm -rf sqsh_layer-es-auth
+	umount -l sqsh_layer-es-file || echo not mounted
+	rm -rf sqsh_layer-es-file
+	umount -l sqsh_layer-es || echo not mounted
+	rm -rf sqsh_layer-es
+	umount -l upper_layer || echo not mounted
+	rm -rf upper_layer
+	umount -l sysroot || echo not mounted
+	rm -rf sysroot
+
+clean-local: sysroot-clean
+	rm -rf .build
+
+
+################################################################################
+# PPA setup rules
+#
+# NOTE: These get actually applied to different layers via their build
+#       rules, but they're all listed here for convenience.
+#
+# NOTE: We no longer use apt-key or the legacy trusted.gpg keyring
+#       because they were deprecated in jammy, and for good reason.
+#       See the DEPRECATION section in apt-key(8) for details.
+#
+#       https://askubuntu.com/questions/1286545/what-commands-exactly-should-replace-the-deprecated-apt-key
+#
+sysroot/etc/apt/sources.list.d/sourceruckus.list:
 	$(MAKE) sysroot-mount-vfs
-	echo "deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse" > sysroot/etc/apt/sources.list
-	echo "deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse" >> sysroot/etc/apt/sources.list
-	echo "deb http://archive.ubuntu.com/ubuntu/ noble-backports main restricted universe multiverse" >> sysroot/etc/apt/sources.list
-	echo "deb http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse" >> sysroot/etc/apt/sources.list
-	$(CHROOT) apt update
-	$(CHROOT) apt upgrade -y --autoremove
-	touch $@
+	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) tee /etc/apt/keyrings/sourceruckus.asc
+	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/sourceruckus.asc] https://sourceruckus.github.io/ppa noble main" > $@
 
-# base list (pared down from ubuntu-server)
-#
-# This base package list is generated manually by reviewing the
-# packages that would be installed by ubuntu-server, removing some
-# stuff we don't want, and adding some stuff we do.  The resulting
-# image should be tiny and awesome.
-#
-# 1. apt install ubuntu-server [n]
-# 2. Review apps (skip over libs and python mods, remove initramfs
-#    stuff, remove vm/cloud stuff).
-# 3. apt install --no-install-recommends $PKGS_ES [n]
-# 4. Compare and contrast, try again until you like the list.
-#
-# W/out removing things, ubuntu-server adds ~420M.  All our pruning
-# reduces that to just an additional ~240M, then we add in things we
-# actually want.
-#
-# Removed
-# - apparmor
-# - apport apport-*
-# - appstream
-# - bcache-tools
-# - busybox-initramfs
-# - byobu
-# - cloud-*
-# - cryptsetup-initramfs
-# - dracut-*
-# - fonts-ubuntu-console
-# - fwupd fwupd-signed
-# - initramfs-tools initramfs-tools-*
-# - klibc-utils
-# - landscape-common
-# - lxd-*
-# - multipath-tools (pulled in initramfs stuff)
-# - open-vm-tools
-# - overlayroot
-# - pastebinit
-# - plymouth plymouth-*
-# - screen
-# - sbsigntool secureboot-db
-# - sg3-utils sg3-utils-udev (pulled in initramfs stuff)
-# - snapd
-# - sosreport
-# - tmux
-# - tpm-udev
-# - ubuntu-server
-# - update-manager-core update-notifier-common
-#
-# NOTE: utils to play with: kexec htop run-one zerofree
-#
-PKGS_ES =
-PKGS_ES += bc btrfs-progs cpio cryptsetup cryptsetup-bin curl
-PKGS_ES += dirmngr dmeventd dosfstools
-PKGS_ES += ethtool fdisk finalrd fuse3 gawk gdisk gettext-base gir1.2-packagekitglib-1.0 git git-man gnupg
-PKGS_ES += gnupg-l10n gnupg-utils gpg gpg-agent gpg-wks-client gpgconf gpgsm groff-base htop jq keyboxd
-PKGS_ES += kpartx linux-base lshw lvm2
-PKGS_ES += mdadm modemmanager motd-news-config needrestart ntfs-3g openssh-client
-PKGS_ES += packagekit packagekit-tools parted patch pci.ids pciutils perl perl-modules-5.38 pinentry-curses
-PKGS_ES += polkitd pollinate publicsuffix
-PKGS_ES += run-one sgml-base software-properties-common
-PKGS_ES += squashfs-tools tcl tcl8.6 thin-provisioning-tools ubuntu-release-upgrader-core unattended-upgrades
-PKGS_ES += usb-modeswitch usb-modeswitch-data usb.ids vim vim-runtime xauth xfsprogs xml-core xz-utils zerofree zstd
-# additional things we want (~730M last time I checked)
-PKGS_ES += lz4
-PKGS_ES += iptables
-PKGS_ES += network-manager
-PKGS_ES += iptables-persistent #(yes for saving rules, dpkg-reconfigure later?)
-PKGS_ES += tshark #(yes for non-root capture, dpkg-reconfigure wireshark-common later?)
-PKGS_ES += openssh-server ntp sntp ncurses-term
-PKGS_ES += dnsmasq
-PKGS_ES += cifs-utils smbclient
-PKGS_ES += keyutils winbind libnss-winbind libpam-winbind
-PKGS_ES += acl
-PKGS_ES += attr
-PKGS_ES += bind9-host bind9-dnsutils net-tools
-PKGS_ES += vlan bridge-utils ifenslave
-PKGS_ES += postfix #(no config, use dpkg-reconfigre to tweak later)
-PKGS_ES += libsasl2-modules
-PKGS_ES += mailutils
-PKGS_ES += zsh gkrellmd
-PKGS_ES += git-email
-PKGS_ES += emacs-nox emacs-common-non-dfsg
-PKGS_ES += aspell aspell-en
-PKGS_ES += autofs nfs-common
-PKGS_ES += ftp ncftp
-PKGS_ES += wireguard-tools #(--no-install-recommends to avoid grub junk - or apt-mark hold wireguard-dkms wireguard-modules)
-PKGS_ES += logwatch libdate-manip-perl
-PKGS_ES += lsof
-PKGS_ES += rsync
-PKGS_ES += info
-PKGS_ES += traceroute
-PKGS_ES += tree
-PKGS_ES += zip unzip unrar
-PKGS_ES += xattr
-PKGS_ES += krb5-user #(specified default realm (SOURCERUCKUS.ORG), server (krb5), and pw server (krb5pw), use dpkg-reconfigure later?)
-PKGS_ES += libpam-krb5
-PKGS_ES += mosh
-PKGS_ES += wget
-PKGS_ES += man-db wamerican whois
-PKGS_ES += psmisc
-PKGS_ES += fio
-PKGS_ES += iperf
-PKGS_ES += iperf3 #(no for run as daemon automatically, dpkg-reconfigure later? no was the default)
-PKGS_ES += iotop
-PKGS_ES += sysstat
-PKGS_ES += nmap
-PKGS_ES += apt-file
-PKGS_ES += fsarchiver
-PKGS_ES += bzip2
-PKGS_ES += manpages
+sysroot/etc/apt/sources.list.d/influxdb.list:
+	$(MAKE) sysroot-mount-vfs
+	wget -qO- https://repos.influxdata.com/influxdata-archive_compat.key | $(CHROOT) tee /etc/apt/keyrings/influxdb.asc
+	echo "deb [signed-by=/etc/apt/keyrings/influxdb.asc] https://repos.influxdata.com/debian stable main" > $@
 
-# FIXME: would add nftables so I can play with it, but afraid it will
-#        mess with iptables
-#
-# nftables iptables-nftables-compat
+sysroot/etc/apt/sources.list.d/grafana.list:
+	$(MAKE) sysroot-mount-vfs
+	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) tee /etc/apt/keyrings/grafana.asc
+	echo "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main" > $@
 
-# compilation toolchain and additional development tools and libraries (~1.3G)
+sysroot/etc/apt/sources.list.d/wine.list:
+	$(MAKE) sysroot-mount-vfs
+	wget -qO- https://dl.winehq.org/wine-builds/winehq.key | $(CHROOT) tee /etc/apt/keyrings/wine.asc
+	echo "deb [signed-by=/etc/apt/keyrings/wine.asc] https://dl.winehq.org/wine-builds/ubuntu noble main" > $@
+
+# NOTE: We do this instead of using add-apt-repository to make things a bit
+#	more consistent in here and to avoid multiple apt update calls.
+sysroot/etc/apt/sources.list.d/linbit-drbd9.list:
+	$(MAKE) sysroot-mount-vfs
+	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
+	$(CHROOT) gpgconf --launch gpg-agent
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --keyserver keyserver.ubuntu.com \
+	  --recv-keys CC1B5A793C04BB3905AD837734893610CEAA9512
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > sysroot/etc/apt/keyrings/linbit.gpg
+	$(CHROOT) gpgconf --kill all
+	rm sysroot/tmp/keybox.gpg
+	echo "deb [signed-by=/etc/apt/keyrings/linbit.gpg] http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu noble main" > $@
+
+# FIXME: do i really need this one?  way back we got mbsystem from
+#        here, along with other things like gmt, i thought...  but
+#        after bionic (i think), mbsystem got dropped from Ubuntu-GIS
+#        and I started building it myself with jammy... but by that
+#        time i think all it's deps were in regular ubuntu...?
 #
-# NOTE: We normally leave all these development packages until VMM or
-#       Workstation.  You only need them at this point if this is the first
-#       ever bootstrap build of a new release and we need to actually compile
-#       the Source Ruckus PPA packages.  If that's the case, add
-#       PKGS_COMPILATION to PKGS_ES for a test build and do your thing.
+#        i think it still provides *newer* versions of packages,
+#        including qgis
 #
+sysroot/etc/apt/sources.list.d/ubuntu-gis.list:
+	$(MAKE) sysroot-mount-vfs
+	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
+	$(CHROOT) gpgconf --launch gpg-agent
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --keyserver keyserver.ubuntu.com \
+	    --recv 6B827C12C2D425E227EDCA75089EBE08314DF160
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > /sysroot/etc/apt/keyrings/ubuntugis.gpg
+	$(CHROOT) gpgconf --kill all
+	rm sysroot/tmp/keybox.gpg
+	echo "deb [signed-by=/etc/apt/keyrings/ubuntugis.gpg] https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu noble main " > $@
+
+
+################################################################################
+# package groups
+#
+# Convenient groupings so we don't have to copy/paste when adding
+# things to multiple layers
+#
+PKGS_FILESHARING =
+PKGS_FILESHARING += nfs-kernel-server
+PKGS_FILESHARING += samba samba-dsdb-modules samba-vfs-modules
+PKGS_FILESHARING += wsdd
+
+PKGS_ZFS =
+PKGS_ZFS += zfs # our package, from sourceruckus ppa
+PKGS_ZFS += zfs-auto-snapshot # ubuntu ppa, but now using our zfs package
+# deps for sanoid, so we can use a development snapshot if desired
+PKGS_ZFS += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
+PKGS_ZFS += sanoid # ubuntu ppa, but now using our zfs package
+
 PKGS_COMPILATION =
 PKGS_COMPILATION += build-essential manpages-dev
 PKGS_COMPILATION += autoconf automake autopoint m4 libtool gettext pkg-config bison flex
@@ -377,91 +365,175 @@ PKGS_COMPILATION += libpackage-stash-xs-perl qt5-gtk-platformtheme libwacom-bin 
 PKGS_COMPILATION += python3-html5lib python3-chardet python3-olefile r-recommended
 PKGS_COMPILATION += r-base-dev
 
+
+################################################################################
+# ES (base)
+#
+# This is going to be used for most of our domUs.  Should include what's needed
+# for srv-router, srv-net, srv-auth.
+#
+
+# stage1 - 211M
+#
+# NOTE: We change UID_MIN and GID_MIN to 500 in /etc/login.defs
+#       accross-the-board to differentiate local users from krb5 users.
+#       Otherwise, if krb server is unreachable, it takes a few minutes to
+#       authenticate local users.  We have to make this change as early as
+#       possible to keep apt install from adding users with uid higher than 500
+#       (i.e., if we wait until "finalization" of es.sqsh, it's too late -
+#       we've got gkrellmd and telegraf as 999 and 998).
+#
+.build/RUCKUS-DEBOOTSTRAP:
+	$(MAKE) sysroot-clean
+	$(MKDIR_P) $(dir $@)
+	DEBOOTSTRAP_DIR=$(DEBOOTSTRAP_DIR) $(DEBOOTSTRAP) --arch=amd64 noble sysroot http://archive.ubuntu.com/ubuntu/
+	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
+	touch $@
+
+# after updates, sysroot is ~280M
+.build/RUCKUS-ES-APT-PREP: .build/RUCKUS-DEBOOTSTRAP
+	$(MAKE) sysroot-mount-vfs
+	echo "deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse" > sysroot/etc/apt/sources.list
+	echo "deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse" >> sysroot/etc/apt/sources.list
+	echo "deb http://archive.ubuntu.com/ubuntu/ noble-backports main restricted universe multiverse" >> sysroot/etc/apt/sources.list
+	echo "deb http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse" >> sysroot/etc/apt/sources.list
+	$(CHROOT) apt update
+	$(CHROOT) apt upgrade -y --autoremove
+	touch $@
+
+# base list (pared down from ubuntu-server)
+#
+# This base package list is generated manually by reviewing the
+# packages that would be installed by ubuntu-server, removing some
+# stuff we don't want, and adding some stuff we do.  The resulting
+# image should be tiny and awesome.
+#
+# 1. apt install ubuntu-server [n]
+# 2. Review apps (skip over libs and python mods, remove initramfs
+#    stuff, remove vm/cloud stuff).
+# 3. apt install --no-install-recommends $PKGS_ES [n]
+# 4. Compare and contrast, try again until you like the list.
+#
+# W/out removing things, ubuntu-server adds ~420M.  All our pruning
+# reduces that to just an additional ~240M, then we add in things we
+# actually want.
+#
+# Removed
+# - apparmor
+# - apport apport-*
+# - appstream
+# - bcache-tools
+# - busybox-initramfs
+# - byobu
+# - cloud-*
+# - cryptsetup-initramfs
+# - dracut-*
+# - fonts-ubuntu-console
+# - fwupd fwupd-signed
+# - initramfs-tools initramfs-tools-*
+# - klibc-utils
+# - landscape-common
+# - lxd-*
+# - multipath-tools (pulled in initramfs stuff)
+# - open-vm-tools
+# - overlayroot
+# - pastebinit
+# - plymouth plymouth-*
+# - screen
+# - sbsigntool secureboot-db
+# - sg3-utils sg3-utils-udev (pulled in initramfs stuff)
+# - snapd
+# - sosreport
+# - tmux
+# - tpm-udev
+# - ubuntu-server
+# - update-manager-core update-notifier-common
+#
+# NOTE: utils to play with: kexec htop run-one zerofree
+#
+PKGS_ES =
+PKGS_ES += bc btrfs-progs cpio cryptsetup cryptsetup-bin curl
+PKGS_ES += dirmngr dmeventd dosfstools
+PKGS_ES += ethtool fdisk finalrd fuse3 gawk gdisk gettext-base gir1.2-packagekitglib-1.0 git git-man gnupg
+PKGS_ES += gnupg-l10n gnupg-utils gpg gpg-agent gpg-wks-client gpgconf gpgsm groff-base htop jq keyboxd
+PKGS_ES += kpartx linux-base lshw lvm2
+PKGS_ES += mdadm modemmanager motd-news-config needrestart ntfs-3g openssh-client
+PKGS_ES += packagekit packagekit-tools parted patch pci.ids pciutils perl perl-modules-5.38 pinentry-curses
+PKGS_ES += polkitd pollinate publicsuffix
+PKGS_ES += run-one sgml-base software-properties-common
+PKGS_ES += squashfs-tools tcl tcl8.6 thin-provisioning-tools ubuntu-release-upgrader-core unattended-upgrades
+PKGS_ES += usb-modeswitch usb-modeswitch-data usb.ids vim vim-runtime xauth xfsprogs xml-core xz-utils zerofree zstd
+# additional things we want (~730M last time I checked)
+PKGS_ES += lz4
+PKGS_ES += iptables
+PKGS_ES += network-manager
+PKGS_ES += iptables-persistent #(yes for saving rules, dpkg-reconfigure later?)
+PKGS_ES += tshark #(yes for non-root capture, dpkg-reconfigure wireshark-common later?)
+PKGS_ES += openssh-server ntp sntp ncurses-term
+PKGS_ES += dnsmasq
+PKGS_ES += cifs-utils smbclient
+PKGS_ES += keyutils winbind libnss-winbind libpam-winbind
+PKGS_ES += acl
+PKGS_ES += attr
+PKGS_ES += bind9-host bind9-dnsutils net-tools
+PKGS_ES += vlan bridge-utils ifenslave
+PKGS_ES += postfix #(no config, use dpkg-reconfigre to tweak later)
+PKGS_ES += libsasl2-modules
+PKGS_ES += mailutils
+PKGS_ES += zsh gkrellmd
+PKGS_ES += git-email
+PKGS_ES += emacs-nox emacs-common-non-dfsg
+PKGS_ES += aspell aspell-en
+PKGS_ES += autofs nfs-common
+PKGS_ES += ftp ncftp
+PKGS_ES += wireguard-tools #(--no-install-recommends to avoid grub junk - or apt-mark hold wireguard-dkms wireguard-modules)
+PKGS_ES += logwatch libdate-manip-perl
+PKGS_ES += lsof
+PKGS_ES += rsync
+PKGS_ES += info
+PKGS_ES += traceroute
+PKGS_ES += tree
+PKGS_ES += zip unzip unrar
+PKGS_ES += xattr
+PKGS_ES += krb5-user #(specified default realm (SOURCERUCKUS.ORG), server (krb5), and pw server (krb5pw), use dpkg-reconfigure later?)
+PKGS_ES += libpam-krb5
+PKGS_ES += mosh
+PKGS_ES += wget
+PKGS_ES += man-db wamerican whois
+PKGS_ES += psmisc
+PKGS_ES += fio
+PKGS_ES += iperf
+PKGS_ES += iperf3 #(no for run as daemon automatically, dpkg-reconfigure later? no was the default)
+PKGS_ES += iotop
+PKGS_ES += sysstat
+PKGS_ES += nmap
+PKGS_ES += apt-file
+PKGS_ES += fsarchiver
+PKGS_ES += bzip2
+PKGS_ES += manpages
+#
+# FIXME: would add nftables so I can play with it, but afraid it will
+#        mess with iptables
+#
+# PKGS_ES += nftables iptables-nftables-compat
+
+# compilation toolchain and additional development tools and libraries (~1.3G)
+#
+# NOTE: We normally leave all these development packages until VMM or
+#       Workstation.  You only need them at this point if this is the first
+#       ever bootstrap build of a new release and we need to actually compile
+#       the Source Ruckus PPA packages.  If that's the case, add
+#       PKGS_COMPILATION to PKGS_ES for a test build and do your thing.
+#
 if ES_DEVEL
 PKGS_ES += $(PKGS_COMPILATION)
 endif
 
-# NOTE: We want apt install to be completely noninteractive with pre-seeded
-#       values for all debconf questions.  My initial idea was to run through
-#       interactively and then just copy the resulting debconf config.dat into
-#       subsequent runs, but reading online kinda implies that that's the
-#       "wrong" thing to do, and that I should use either DEBCONF_DB_FALLBACK
-#       or DEBCONF_DB_OVERRIDE variables (set to either Pipe or File) to supply
-#       values...  both of those methods were providing strange errors,
-#       though...  so I tried just copying config.dat in directly as I'd
-#       originally planned and it worked fine... so that's what I'm doing.
-#
-# NOTE: While the debconf-config.dat workaround does answer the
-#       questions before they pop-up, it does NOT suppress other
-#       interactive things (e.g., needrestart service restart dialog).
-#       So we still also supply DEBIAN_FRONTEND=noninteractive.
-#
-APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
-APT_REMOVE=DEBIAN_FRONTEND=noninteractive apt remove -y --autoremove --purge
 .build/RUCKUS-ES-APT: .build/RUCKUS-ES-APT-PREP
 	$(MAKE) sysroot-mount-vfs
 	cp debconf-config.dat sysroot/var/cache/debconf/config.dat
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ES)
 	touch $@
-
-# NOTE: We no longer use apt-key or the legacy trusted.gpg keyring
-#       because they were deprecated in jammy, and for good reason.
-#       See the DEPRECATION section in apt-key(8) for details.
-#
-#       https://askubuntu.com/questions/1286545/what-commands-exactly-should-replace-the-deprecated-apt-key
-#
-sysroot/etc/apt/sources.list.d/sourceruckus.list:
-	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) tee /etc/apt/keyrings/sourceruckus.asc
-	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/sourceruckus.asc] https://sourceruckus.github.io/ppa noble main" > $@
-
-sysroot/etc/apt/sources.list.d/influxdb.list:
-	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://repos.influxdata.com/influxdata-archive_compat.key | $(CHROOT) tee /etc/apt/keyrings/influxdb.asc
-	echo "deb [signed-by=/etc/apt/keyrings/influxdb.asc] https://repos.influxdata.com/debian stable main" > $@
-
-sysroot/etc/apt/sources.list.d/grafana.list:
-	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) tee /etc/apt/keyrings/grafana.asc
-	echo "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main" > $@
-
-sysroot/etc/apt/sources.list.d/wine.list:
-	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://dl.winehq.org/wine-builds/winehq.key | $(CHROOT) tee /etc/apt/keyrings/wine.asc
-	echo "deb [signed-by=/etc/apt/keyrings/wine.asc] https://dl.winehq.org/wine-builds/ubuntu noble main" > $@
-
-# NOTE: We do this instead of using add-apt-repository to make things a bit
-#	more consistent in here and to avoid multiple apt update calls.
-sysroot/etc/apt/sources.list.d/linbit-drbd9.list:
-	$(MAKE) sysroot-mount-vfs
-	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
-	$(CHROOT) gpgconf --launch gpg-agent
-	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --keyserver keyserver.ubuntu.com \
-	  --recv-keys CC1B5A793C04BB3905AD837734893610CEAA9512
-	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > sysroot/etc/apt/keyrings/linbit.gpg
-	$(CHROOT) gpgconf --kill all
-	rm sysroot/tmp/keybox.gpg
-	echo "deb [signed-by=/etc/apt/keyrings/linbit.gpg] http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu noble main" > $@
-
-# FIXME: do i really need this one?  way back we got mbsystem from
-#        here, along with other things like gmt, i thought...  but
-#        after bionic (i think), mbsystem got dropped from Ubuntu-GIS
-#        and I started building it myself with jammy... but by that
-#        time i think all it's deps were in regular ubuntu...?
-#
-#        i think it still provides *newer* versions of packages,
-#        including qgis
-#
-sysroot/etc/apt/sources.list.d/ubuntu-gis.list:
-	$(MAKE) sysroot-mount-vfs
-	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
-	$(CHROOT) gpgconf --launch gpg-agent
-	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --keyserver keyserver.ubuntu.com \
-	    --recv 6B827C12C2D425E227EDCA75089EBE08314DF160
-	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > /sysroot/etc/apt/keyrings/ubuntugis.gpg
-	$(CHROOT) gpgconf --kill all
-	rm sysroot/tmp/keybox.gpg
-	echo "deb [signed-by=/etc/apt/keyrings/ubuntugis.gpg] https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu noble main " > $@
 
 # NOTE: Definition of "3rd Party" in here is "upstream != Ubuntu".  That means
 #       our own Source Ruckus PPA is considered "3rd Party".
@@ -556,12 +628,6 @@ endif
 	touch $@
 
 
-# FIXME: configure flag for this?  or maybe have configure check for
-#        zstd support in mksquashfs?
-#
-#SQSH_COMP=-comp lz4 -Xhc
-SQSH_COMP=-comp zstd
-
 # NOTE: If --enable-devel, just swap out the name of this rule.
 #
 if ES_DEVEL
@@ -572,52 +638,12 @@ endif
 	$(MAKE) sysroot-umount-vfs
 	mksquashfs sysroot $@ $(SQSH_COMP) -noappend -wildcards
 
-# FIXME: i don't remember exactly why i do a umount -l here... and
-#       it's causing problems occasionally with sysroot (when it's
-#       overlay).  manually unmounting and trying again seems to work,
-#       so i'm wonderingy if i should just drop the -l.
-#
-sysroot-clean:
-	$(MAKE) sysroot-umount-vfs
-	umount -l sqsh_layer-vmm || echo not mounted
-	rm -rf sqsh_layer-vmm
-	umount -l sqsh_layer-server || echo not mounted
-	rm -rf sqsh_layer-server
-	umount -l sqsh_layer-es-web || echo not mounted
-	rm -rf sqsh_layer-es-web
-	umount -l sqsh_layer-es-auth || echo not mounted
-	rm -rf sqsh_layer-es-auth
-	umount -l sqsh_layer-es-file || echo not mounted
-	rm -rf sqsh_layer-es-file
-	umount -l sqsh_layer-es || echo not mounted
-	rm -rf sqsh_layer-es
-	umount -l upper_layer || echo not mounted
-	rm -rf upper_layer
-	umount -l sysroot || echo not mounted
-	rm -rf sysroot
-
-clean-local: sysroot-clean
-	rm -rf .build
-
-
 
 ################################################################################
 # ES-file
 #
 # Based on ES, adds file-server specific packages.
 #
-PKGS_FILESHARING =
-PKGS_FILESHARING += nfs-kernel-server
-PKGS_FILESHARING += samba samba-dsdb-modules samba-vfs-modules
-PKGS_FILESHARING += wsdd
-
-PKGS_ZFS =
-PKGS_ZFS += zfs # our package, from sourceruckus ppa
-PKGS_ZFS += zfs-auto-snapshot # ubuntu ppa, but now using our zfs package
-# deps for sanoid, so we can use a development snapshot if desired
-PKGS_ZFS += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
-PKGS_ZFS += sanoid # ubuntu ppa, but now using our zfs package
-
 PKGS_ESFILE =
 PKGS_ESFILE += $(PKGS_FILESHARING)
 PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin pocketsphinx-en-us librsvg2-common libbdplus0
@@ -636,31 +662,6 @@ PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin pocketsphinx-en-us librsvg
 
 
 # prepare an overlay mount on sysroot
-#
-# FIXME: my build box is using zfs, which can't be used for the upper layer.
-#        oopsie.  for now lets use a 2G tmpfs mount and see how that goes.
-#        long term, we should check for an appropriate fs via configure and add
-#        --with-tmpfs-upper=SIZE argument.
-#
-# FIXME: ok, i think that's fixed in upstream ZFS 2.2.something,
-#        definately in 2.3.  for the record, using tmpfs for all the
-#        images prior to workstation.sqsh works fine with 4G of ram
-#        (defaults to 2G tmpfs)... but the workstation needs ~11.5G of
-#        freespace... so yeah, RAM probably not good for that.
-#
-# FIXME: oooh... building on a vm, my build dir is *already* an
-#        overlay...  crap bag.  I'll either have to pass in a data vol
-#        or make an sparse ext4 image...  probably better to pass in a
-#        data vol.  :-/
-#
-sqsh_layer-es: es.sqsh
-	$(MKDIR_P) $@
-	mount es.sqsh $@
-
-upper_layer:
-	$(MKDIR_P) $@
-#	mount -t tmpfs none $@
-
 .build/RUCKUS-ESFILE-OVL:
 	$(MAKE) sysroot-clean
 	$(MAKE) sqsh_layer-es upper_layer
@@ -876,10 +877,6 @@ PKGS_VMM += ipxe-qemu-256k-compat-efi-roms qemu-system-gui qemu-system-modules-s
 PKGS_VMM += qemu-system-modules-opengl qemu-block-extra cpu-checker
 PKGS_VMM += libgl1-amber-dri
 
-sqsh_layer-server: server.sqsh
-	$(MKDIR_P) $@
-	mount server.sqsh $@
-
 .build/RUCKUS-VMM-OVL:
 	$(MAKE) sysroot-clean
 	$(MAKE) sqsh_layer-es sqsh_layer-server upper_layer
@@ -905,12 +902,6 @@ sqsh_layer-server: server.sqsh
 vmm.sqsh: .build/RUCKUS-VMM-FINAL
 	$(MAKE) sysroot-umount-vfs
 	mksquashfs upper_layer/upper $@ $(SQSH_COMP) -noappend -wildcards
-
-# special target for adding compilation toolchain to an already
-# prepped sysroot
-sysroot-add-compilation:
-	$(MAKE) sysroot-mount-vfs
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_COMPILATION)
 
 
 ################################################################################
@@ -969,10 +960,6 @@ PKGS_WORKSTATION += wine-devel # upstream ppa
 
 PKGS_WORKSTATION_REMOVE =
 PKGS_WORKSTATION_REMOVE += update-manager update-notifier
-
-sqsh_layer-vmm: vmm.sqsh
-	$(MKDIR_P) $@
-	mount vmm.sqsh $@
 
 .build/RUCKUS-WORKSTATION-OVL:
 	$(MAKE) sysroot-clean
