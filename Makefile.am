@@ -42,13 +42,13 @@ info:
 	@echo
 	@echo PKGS_ESWEB=\"$(PKGS_ESWEB)\"
 	@echo
-	@echo PKGS_ESWEB_LOCAL=\"$(PKGS_ESWEB_LOCAL)\"
-	@echo
 	@echo PKGS_SERVER=\"$(PKGS_SERVER)\"
 	@echo
 	@echo PKGS_VMM=\"$(PKGS_VMM)\"
 	@echo
 	@echo PKGS_WORKSTATION=\"$(PKGS_WORKSTATION)\"
+	@echo
+	@echo PKGS_WORKSTATION_LOCAL\"$(PKGS_WORKSTATION_LOCAL)\"
 	@echo
 	@echo PKGS_COMPILATION=\"$(PKGS_COMPILATION)\"
 	@echo
@@ -415,29 +415,29 @@ APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommend
 #
 #       https://askubuntu.com/questions/1286545/what-commands-exactly-should-replace-the-deprecated-apt-key
 #
-sysroot/etc/apt/sources.list.d/sourceruckus.list: .build/RUCKUS-ES-APT
+sysroot/etc/apt/sources.list.d/sourceruckus.list:
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) tee /etc/apt/keyrings/sourceruckus.asc
-	echo "deb [signed-by=/etc/apt/keyrings/sourceruckus.asc] https://sourceruckus.github.io/ppa noble main" > $@
+	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/sourceruckus.asc] https://sourceruckus.github.io/ppa noble main" > $@
 
-sysroot/etc/apt/sources.list.d/influxdb.list: .build/RUCKUS-ES-APT
+sysroot/etc/apt/sources.list.d/influxdb.list:
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://repos.influxdata.com/influxdata-archive_compat.key | $(CHROOT) tee /etc/apt/keyrings/influxdb.asc
 	echo "deb [signed-by=/etc/apt/keyrings/influxdb.asc] https://repos.influxdata.com/debian stable main" > $@
 
-sysroot/etc/apt/sources.list.d/grafana.list: .build/RUCKUS-ES-APT
+sysroot/etc/apt/sources.list.d/grafana.list:
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://packages.grafana.com/gpg.key | $(CHROOT) tee /etc/apt/keyrings/grafana.asc
 	echo "deb [signed-by=/etc/apt/keyrings/grafana.asc] https://apt.grafana.com stable main" > $@
 
-sysroot/etc/apt/sources.list.d/wine.list: .build/RUCKUS-ES-APT
+sysroot/etc/apt/sources.list.d/wine.list:
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://dl.winehq.org/wine-builds/winehq.key | $(CHROOT) tee /etc/apt/keyrings/wine.asc
 	echo "deb [signed-by=/etc/apt/keyrings/wine.asc] https://dl.winehq.org/wine-builds/ubuntu noble main" > $@
 
 # NOTE: We do this instead of using add-apt-repository to make things a bit
 #	more consistent in here and to avoid multiple apt update calls.
-sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
+sysroot/etc/apt/sources.list.d/linbit-drbd9.list:
 	$(MAKE) sysroot-mount-vfs
 	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
 	$(CHROOT) gpgconf --launch gpg-agent
@@ -457,7 +457,7 @@ sysroot/etc/apt/sources.list.d/linbit-drbd9.list: .build/RUCKUS-ES-APT
 #        i think it still provides *newer* versions of packages,
 #        including qgis
 #
-sysroot/etc/apt/sources.list.d/ubuntu-gis.list: .build/RUCKUS-ES-APT
+sysroot/etc/apt/sources.list.d/ubuntu-gis.list:
 	$(MAKE) sysroot-mount-vfs
 	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
 	$(CHROOT) gpgconf --launch gpg-agent
@@ -511,8 +511,6 @@ PPAS_ES: sysroot/etc/apt/sources.list.d/sourceruckus.list
 PPAS_ES: sysroot/etc/apt/sources.list.d/influxdb.list
 PPAS_ES: sysroot/etc/apt/sources.list.d/grafana.list
 PPAS_ES: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
-#PPAS_ES: sysroot/etc/apt/sources.list.d/ubuntu-gis.list
-PPAS_ES: sysroot/etc/apt/sources.list.d/wine.list
 endif
 
 .build/RUCKUS-ES-3RDPARTY: .build/RUCKUS-ES-APT
@@ -773,12 +771,6 @@ PKGS_ESWEB += grafana # upstream ppa added already
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ESWEB)
 	touch $@
 
-# fetch debs and install locally
-#.build/RUCKUS-ESWEB-LOCAL: .build/RUCKUS-ESWEB-APT sysroot/tmp/unifi.deb
-#	$(MAKE) sysroot-mount-vfs
-#	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(patsubst %,/tmp/%.deb,$(PKGS_ESWEB_LOCAL))
-#	touch $@
-
 # service enable/disable, tweaks, etc
 #
 # FIXME: audit services
@@ -939,13 +931,16 @@ sysroot-add-compilation:
 #   - openshot (wget upstream appimage)
 #   - zoom (wget .deb)
 #   - teams (wget .deb)
-# - remove packages that got pulled in via ubuntu-desktop?
+# - remove packages that got pulled in via ubuntu-desktop?  can i just mask these prior to install?
 #   - thunderbird
-#   - stupid autoupdate gui notification thing
-#   - snapd?
+#   - stupid autoupdate gui notification thing (update-manager or update-notifier?  looks like they both depend on each other)
 #
-.build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/qgis.list # FIXME: pure upstream or UbuntuGIS?
-.build/RUCKUS-WORKSTATION-3RDPARTY: sysroot/etc/apt/sources.list.d/steam.list
+.PHONY: PPAS_WORKSTATION
+PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/wine.list
+#PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/ubuntu-gis.list # FIXME: unneeded?
+#PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/qgis.list # FIXME: pure upstream or UbuntuGIS?
+#PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/steam.list
+
 
 PKGS_WORKSTATION =
 PKGS_WORKSTATION += ubuntu-desktop # FIXME: we'll want to prune things out of this later
@@ -964,45 +959,103 @@ PKGS_WORKSTATION += gnuplot
 PKGS_WORKSTATION += inkscape xfig dia
 PKGS_WORKSTATION += audacity audacious
 PKGS_WORKSTATION += opus-tools librsvg2-bin speex vorbis-tools sox
-
 PKGS_WORKSTATION += va-driver-all vdpau-driver-all mesa-utils
 PKGS_WORKSTATION += mesa-vulkan-drivers
-
 PKGS_WORKSTATION += wireshark gkrellm gitk git-gui
 PKGS_WORKSTATION += vlc
 PKGS_WORKSTATION += gnome-tweaks rdesktop
 PKGS_WORKSTATION += emacs-gtk # replaces emacs-nox
-PKGS_WORKSTATION += wine
+PKGS_WORKSTATION += wine-devel # upstream ppa
 
-sysroot/tmp/chrome.deb:
-	wget -qO- https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb > $@
+sqsh_layer-vmm: vmm.sqsh
+	$(MKDIR_P) $@
+	mount vmm.sqsh $@
 
-PKGS_WORKSTATION_LOCAL =
-PKGS_WORKSTATION_LOCAL += chrome
+.build/RUCKUS-WORKSTATION-OVL:
+	$(MAKE) sysroot-clean
+	$(MAKE) sqsh_layer-es sqsh_layer-server sqsh_layer-vmm upper_layer
+	$(MKDIR_P) sysroot upper_layer/{upper,work}
+	mount -t overlay -o lowerdir=sqsh_layer-vmm:sqsh_layer-server:sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
+	touch $@
 
+.build/RUCKUS-WORKSTATION-PPAS: .build/RUCKUS-WORKSTATION-OVL
+	$(MAKE) sysroot-mount-vfs
+	$(MAKE) PPAS_WORKSTATION
+	touch $@
 
 # add 32bit architecture support
-.build/RUCKUS-WORKSTATION-32bit: .build/RUCKUS-WORKSTATION-APT
+.build/RUCKUS-WORKSTATION-ARCH: .build/RUCKUS-WORKSTATION-PPAS
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) dpkg --add-architecture i386
 	$(CHROOT) apt update
 	touch $@
 
-# special install block for wine because we ONLY want to specify
-# --install-recommends for wine
-.build/RUCKUS-WORKSTATION-WINE: .build/RUCKUS-WORKSTATION-32bit
+# apt install
+#
+# NOTE: We do --install-recommends for this one!  Bring on the kitchen
+#       sink!
+#
+.build/RUCKUS-WORKSTATION-APT: .build/RUCKUS-WORKSTATION-ARCH
 	$(MAKE) sysroot-mount-vfs
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends winehq-stable
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends $(PKGS_WORKSTATION)
 	touch $@
+
+sysroot/tmp/google-chrome.deb:
+	wget -qO- https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb > $@
+
+sysroot/tmp/google-earth.deb:
+	wget -qO- https://dl.google.com/linux/direct/google-earth-stable_current_amd64.deb > $@
+
+.PHONY: DOWNLOADS_WORKSTATION
+DOWNLOADS_WORKSTATION: sysroot/tmp/google-chrome.deb
+DOWNLOADS_WORKSTATION: sysroot/tmp/google-earth.deb
+
+PKGS_WORKSTATION_LOCAL =
+PKGS_WORKSTATION_LOCAL += google-chrome
+PKGS_WORKSTATION_LOCAL += google-earth
+#PKGS_WORKSTATION_LOCAL += teamviewer
+#PKGS_WORKSTATION_LOCAL += zoom
+#PKGS_WORKSTATION_LOCAL += teams
 
 # fetch debs and install locally
 #
-# FIXME: don't forget to rm /tmp/*.deb after this.
+# FIXME: last time I did this, i installed via a single apt call with
+#        a patsubst like this:
 #
-.build/RUCKUS-WORKSTATION-LOCAL: .build/RUCKUS-WORKSTATION-APT sysroot/tmp/unifi.deb
+#	 cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(patsubst %,/tmp/%.deb,$(PKGS_ESWEB_LOCAL))
+#
+#        i should be able to do that here, but i need to figure out
+#        out to get a single make call to fetch all the packages
+#        still.  maybe the same way we handle multiple ppa creation?
+#
+#        passes the eyeball test, gotta test it
+#
+.build/RUCKUS-WORKSTATION-LOCAL: .build/RUCKUS-WORKSTATION-APT
 	$(MAKE) sysroot-mount-vfs
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(patsubst %,/tmp/%.deb,$(PKGS_WORKSTATION_LOCAL))
+	$(MAKE) DOWNLOADS_WORKSTATION
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends $(patsubst %,/tmp/%.deb,$(PKGS_WORKSTATION_LOCAL))
+#	for x in $(PKGS_WORKSTATION_LOCAL); do \
+#	  $(MAKE) sysroot/tmp/$$x.deb; \
+#	  cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends sysroot/tmp/$$x.deb; \
+#	done
 	touch $@
+
+# service enable/disable, tweaks, etc
+#
+# FIXME: audit services
+#
+.build/RUCKUS-WORKSTATION-FINAL: .build/RUCKUS-WORKSTATION-LOCAL
+	$(MAKE) sysroot-mount-vfs
+	rm -fv sysroot/tmp/*
+	touch $@
+
+workstation.sqsh: .build/RUCKUS-WORKSTATION-FINAL
+	$(MAKE) sysroot-umount-vfs
+	mksquashfs upper_layer/upper $@ $(SQSH_COMP) -noappend -wildcards
+
+
+
+
 
 # Things for installer to do:
 #

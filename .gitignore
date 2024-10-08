@@ -4,7 +4,8 @@
 /.build
 /sysroot
 /sqsh_layer-es
-/sqsh_layer-esfile
+/sqsh_layer-server
+/sqsh_layer-vmm
 /upper_layer
 
 # autotools files
