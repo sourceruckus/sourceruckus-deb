@@ -14,13 +14,7 @@ EXTRA_DIST += $(top_docs)
 # - Prepare a new upper layer
 # - Overlay-mount layers on sysroot for next image stage
 #
-# FIXME: consider using tmpfs for build dir(s).  makes cleaning them out pretty
-#        easy, as you just unmount... but we'd be requiring a bit more RAM
-#        (probably an extra 2G or so to be safe).
-#
-# FIXME: actually, i did start using tmpfs for upper_layer at some
-#        point already... see other FIXMEs
-#
+
 CHROOT=chroot sysroot /usr/bin/env -i HOME=/root TERM=$$TERM PATH=$$PATH
 
 
@@ -403,6 +397,7 @@ endif
 #       So we still also supply DEBIAN_FRONTEND=noninteractive.
 #
 APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
+APT_REMOVE=DEBIAN_FRONTEND=noninteractive apt remove -y --autoremove --purge
 .build/RUCKUS-ES-APT: .build/RUCKUS-ES-APT-PREP
 	$(MAKE) sysroot-mount-vfs
 	cp debconf-config.dat sysroot/var/cache/debconf/config.dat
@@ -557,7 +552,7 @@ endif
 	$(CHROOT) systemctl disable dnsmasq
 	$(CHROOT) systemctl disable rpc-svcgssd.service
 	$(CHROOT) systemctl mask rpc-svcgssd.service
-	rm -fv sysroot/tmp/*
+	rm -rfv sysroot/tmp/*
 	touch $@
 
 
@@ -577,6 +572,11 @@ endif
 	$(MAKE) sysroot-umount-vfs
 	mksquashfs sysroot $@ $(SQSH_COMP) -noappend -wildcards
 
+# FIXME: i don't remember exactly why i do a umount -l here... and
+#       it's causing problems occasionally with sysroot (when it's
+#       overlay).  manually unmounting and trying again seems to work,
+#       so i'm wonderingy if i should just drop the -l.
+#
 sysroot-clean:
 	$(MAKE) sysroot-umount-vfs
 	umount -l sqsh_layer-vmm || echo not mounted
@@ -680,7 +680,7 @@ upper_layer:
 #
 .build/RUCKUS-ESFILE-FINAL: .build/RUCKUS-ESFILE-APT
 	$(MAKE) sysroot-mount-vfs
-	rm -fv sysroot/tmp/*
+	rm -rfv sysroot/tmp/*
 	touch $@
 
 # mksquashfs
@@ -720,7 +720,7 @@ PKGS_ESAUTH += python3-idna samba-dsdb-modules samba-vfs-modules samba-ad-provis
 #
 .build/RUCKUS-ESAUTH-FINAL: .build/RUCKUS-ESAUTH-APT
 	$(MAKE) sysroot-mount-vfs
-	rm -fv sysroot/tmp/*
+	rm -rfv sysroot/tmp/*
 	touch $@
 
 es-auth.sqsh: .build/RUCKUS-ESAUTH-FINAL
@@ -788,7 +788,7 @@ PKGS_ESWEB += grafana # upstream ppa added already
 #
 .build/RUCKUS-ESWEB-FINAL: .build/RUCKUS-ESWEB-APT
 	$(MAKE) sysroot-mount-vfs
-	rm -fv sysroot/tmp/*
+	rm -rfv sysroot/tmp/*
 	touch $@
 
 es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
@@ -852,7 +852,7 @@ PKGS_SERVER += ltfs
 	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
 	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
 	  zfs.target
-	rm -fv sysroot/tmp/*
+	rm -rfv sysroot/tmp/*
 	touch $@
 
 server.sqsh: .build/RUCKUS-SERVER-FINAL
@@ -899,7 +899,7 @@ sqsh_layer-server: server.sqsh
 #
 .build/RUCKUS-VMM-FINAL: .build/RUCKUS-VMM-APT
 	$(MAKE) sysroot-mount-vfs
-	rm -fv sysroot/tmp/*
+	rm -rfv sysroot/tmp/*
 	touch $@
 
 vmm.sqsh: .build/RUCKUS-VMM-FINAL
@@ -922,35 +922,24 @@ sysroot-add-compilation:
 # NOTE: This image includes upstream Wine (including full 32bit library
 #       support) so you can run Windows junk.
 #
-# - 32bit update
+# FIXME:
 # - via apt
-#   - gcc-multilib (?)
-#   - ubuntu-desktop (maybe exclude a few pkgs?)
 #   - jackd?
-#   - vlc (via upstream snap?)
 #   - dvd player stuff (maybe?)
 #   - special font packages (maybe?)
-#   - rdesktop (and more?)
 #   - libglvnd-dev (what did i need this for...?)
-#   - wine (upstream ppa?)
 # - 3rd party stuff
-#   - teamviewer (wget the .deb, because it won't really work until I have graphical boot?)
-#   - google-chrome google-earth (wget the .deb?)
-#   - ardour (wget the download)
+#   - ardour (wget the download, although I needed to pay for this didn't i...)
 #   - qgis (upstream ppa)
 #   - steam (upstream ppa)
-#   - openshot (wget upstream appimage)
-#   - zoom (wget .deb)
-#   - teams (wget .deb)
-# - remove packages that got pulled in via ubuntu-desktop?  can i just mask these prior to install?
-#   - thunderbird
-#   - stupid autoupdate gui notification thing (update-manager or update-notifier?  looks like they both depend on each other)
+#   - openshot (wget upstream appimage or upstream ppa)
 #
 .PHONY: PPAS_WORKSTATION
 PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/wine.list
 #PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/ubuntu-gis.list # FIXME: unneeded?
 #PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/qgis.list # FIXME: pure upstream or UbuntuGIS?
 #PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/steam.list
+#PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/openshot.list
 
 
 PKGS_WORKSTATION =
@@ -977,6 +966,9 @@ PKGS_WORKSTATION += vlc
 PKGS_WORKSTATION += gnome-tweaks rdesktop
 PKGS_WORKSTATION += emacs-gtk # replaces emacs-nox
 PKGS_WORKSTATION += wine-devel # upstream ppa
+
+PKGS_WORKSTATION_REMOVE =
+PKGS_WORKSTATION_REMOVE += update-manager update-notifier
 
 sqsh_layer-vmm: vmm.sqsh
 	$(MKDIR_P) $@
@@ -1011,44 +1003,41 @@ sqsh_layer-vmm: vmm.sqsh
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends $(PKGS_WORKSTATION)
 	touch $@
 
+.build/RUCKUS-WORKSTATION-REMOVE: .build/RUCKUS-WORKSTATION-APT
+	$(MAKE) sysroot-mount-vfs
+	cat debconf-config.dat | $(CHROOT) $(APT_REMOVE) $(PKGS_WORKSTATION_REMOVE)
+	touch $@
+
 sysroot/tmp/google-chrome.deb:
 	wget -qO- https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb > $@
 
 sysroot/tmp/google-earth.deb:
-	wget -qO- https://dl.google.com/linux/direct/google-earth-stable_current_amd64.deb > $@
+	wget -qO- https://dl.google.com/linux/direct/google-earth-pro-stable_current_amd64.deb > $@
+
+sysroot/tmp/teamviewer.deb:
+	wget -qO- https://download.teamviewer.com/download/linux/teamviewer_amd64.deb > $@
+
+# FIXME: poo, this doesn't add an upstream ppa... but it does work
+sysroot/tmp/zoom.deb:
+	wget -qO- https://zoom.us/client/latest/zoom_amd64.deb > $@
 
 .PHONY: DOWNLOADS_WORKSTATION
 DOWNLOADS_WORKSTATION: sysroot/tmp/google-chrome.deb
 DOWNLOADS_WORKSTATION: sysroot/tmp/google-earth.deb
+DOWNLOADS_WORKSTATION: sysroot/tmp/teamviewer.deb
+DOWNLOADS_WORKSTATION: sysroot/tmp/zoom.deb
 
 PKGS_WORKSTATION_LOCAL =
 PKGS_WORKSTATION_LOCAL += google-chrome
 PKGS_WORKSTATION_LOCAL += google-earth
-#PKGS_WORKSTATION_LOCAL += teamviewer
-#PKGS_WORKSTATION_LOCAL += zoom
-#PKGS_WORKSTATION_LOCAL += teams
+PKGS_WORKSTATION_LOCAL += teamviewer
+PKGS_WORKSTATION_LOCAL += zoom
 
 # fetch debs and install locally
-#
-# FIXME: last time I did this, i installed via a single apt call with
-#        a patsubst like this:
-#
-#	 cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(patsubst %,/tmp/%.deb,$(PKGS_ESWEB_LOCAL))
-#
-#        i should be able to do that here, but i need to figure out
-#        out to get a single make call to fetch all the packages
-#        still.  maybe the same way we handle multiple ppa creation?
-#
-#        passes the eyeball test, gotta test it
-#
-.build/RUCKUS-WORKSTATION-LOCAL: .build/RUCKUS-WORKSTATION-APT
+.build/RUCKUS-WORKSTATION-LOCAL: .build/RUCKUS-WORKSTATION-REMOVE
 	$(MAKE) sysroot-mount-vfs
 	$(MAKE) DOWNLOADS_WORKSTATION
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends $(patsubst %,/tmp/%.deb,$(PKGS_WORKSTATION_LOCAL))
-#	for x in $(PKGS_WORKSTATION_LOCAL); do \
-#	  $(MAKE) sysroot/tmp/$$x.deb; \
-#	  cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends sysroot/tmp/$$x.deb; \
-#	done
 	touch $@
 
 # service enable/disable, tweaks, etc
@@ -1057,7 +1046,7 @@ PKGS_WORKSTATION_LOCAL += google-earth
 #
 .build/RUCKUS-WORKSTATION-FINAL: .build/RUCKUS-WORKSTATION-LOCAL
 	$(MAKE) sysroot-mount-vfs
-	rm -fv sysroot/tmp/*
+	rm -rfv sysroot/tmp/*
 	touch $@
 
 workstation.sqsh: .build/RUCKUS-WORKSTATION-FINAL
