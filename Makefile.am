@@ -642,13 +642,24 @@ PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin pocketsphinx-en-us librsvg
 #        long term, we should check for an appropriate fs via configure and add
 #        --with-tmpfs-upper=SIZE argument.
 #
+# FIXME: ok, i think that's fixed in upstream ZFS 2.2.something,
+#        definately in 2.3.  for the record, using tmpfs for all the
+#        images prior to workstation.sqsh works fine with 4G of ram
+#        (defaults to 2G tmpfs)... but the workstation needs ~11.5G of
+#        freespace... so yeah, RAM probably not good for that.
+#
+# FIXME: oooh... building on a vm, my build dir is *already* an
+#        overlay...  crap bag.  I'll either have to pass in a data vol
+#        or make an sparse ext4 image...  probably better to pass in a
+#        data vol.  :-/
+#
 sqsh_layer-es: es.sqsh
 	$(MKDIR_P) $@
 	mount es.sqsh $@
 
 upper_layer:
 	$(MKDIR_P) $@
-	mount -t tmpfs none $@
+#	mount -t tmpfs none $@
 
 .build/RUCKUS-ESFILE-OVL:
 	$(MAKE) sysroot-clean
