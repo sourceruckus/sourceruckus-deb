@@ -83,7 +83,14 @@ sysroot/dev/block:
 	mount --rbind /dev $(dir $@)
 	mount --make-rslave $(dir $@)
 
-sysroot-mount-vfs: sysroot/proc/self sysroot/sys/block sysroot/dev/block
+# FIXME: i'm seeing /dev/pts missing errors here and
+#        there... shouldn't that be getting pulled in via the /dev
+#        bind mount?  seems to be happening only when playing around
+#        in a built sysroot after building squashfs and doing things
+#        like installing packages via apt.  Make sysroot-umount-vfs
+#        sysroot-mount-vfs fixes it.
+#
+sysroot-mount-vfs: sysroot/proc/self sysroot/sys/block sysroot/dev/block #sysroot/dev/pts
 
 sysroot-umount-vfs:
 	umount -R sysroot/{proc,sys,dev} || echo already unmounted
@@ -163,6 +170,11 @@ sysroot/etc/apt/sources.list.d/wine.list:
 	wget -qO- https://dl.winehq.org/wine-builds/winehq.key | $(CHROOT) tee /etc/apt/keyrings/wine.asc
 	echo "deb [signed-by=/etc/apt/keyrings/wine.asc] https://dl.winehq.org/wine-builds/ubuntu noble main" > $@
 
+sysroot/etc/apt/sources.list.d/qgis.list:
+	$(MAKE) sysroot-mount-vfs
+	wget -qO- https://download.qgis.org/downloads/qgis-archive-keyring.gpg | $(CHROOT) tee /etc/apt/keyrings/qgis.gpg
+	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/qgis.gpg] https://qgis.org/ubuntu noble main" > $@
+
 # NOTE: We do this instead of using add-apt-repository to make things a bit
 #	more consistent in here and to avoid multiple apt update calls.
 sysroot/etc/apt/sources.list.d/linbit-drbd9.list:
@@ -175,6 +187,17 @@ sysroot/etc/apt/sources.list.d/linbit-drbd9.list:
 	$(CHROOT) gpgconf --kill all
 	rm sysroot/tmp/keybox.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/linbit.gpg] http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu noble main" > $@
+
+sysroot/etc/apt/sources.list.d/openshot.list:
+	$(MAKE) sysroot-mount-vfs
+	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
+	$(CHROOT) gpgconf --launch gpg-agent
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --keyserver keyserver.ubuntu.com \
+	  --recv-keys B118F18F5C2AA998436F1603DC9E326890348C30
+	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > sysroot/etc/apt/keyrings/openshot.gpg
+	$(CHROOT) gpgconf --kill all
+	rm sysroot/tmp/keybox.gpg
+	echo "deb [signed-by=/etc/apt/keyrings/openshot.gpg] http://ppa.launchpad.net/openshot.developers/ppa/ubuntu noble main" > $@
 
 # FIXME: do i really need this one?  way back we got mbsystem from
 #        here, along with other things like gmt, i thought...  but
@@ -921,20 +944,15 @@ vmm.sqsh: .build/RUCKUS-VMM-FINAL
 #   - libglvnd-dev (what did i need this for...?)
 # - 3rd party stuff
 #   - ardour (wget the download, although I needed to pay for this didn't i...)
-#   - qgis (upstream ppa)
-#   - steam (upstream ppa)
-#   - openshot (wget upstream appimage or upstream ppa)
 #
 .PHONY: PPAS_WORKSTATION
 PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/wine.list
-#PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/ubuntu-gis.list # FIXME: unneeded?
-#PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/qgis.list # FIXME: pure upstream or UbuntuGIS?
-#PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/steam.list
-#PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/openshot.list
+PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/qgis.list
+PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/openshot.list
 
 
 PKGS_WORKSTATION =
-PKGS_WORKSTATION += ubuntu-desktop # FIXME: we'll want to prune things out of this later
+PKGS_WORKSTATION += ubuntu-desktop
 # development stuff
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
 PKGS_WORKSTATION += kernel-builder
@@ -957,6 +975,8 @@ PKGS_WORKSTATION += vlc
 PKGS_WORKSTATION += gnome-tweaks rdesktop
 PKGS_WORKSTATION += emacs-gtk # replaces emacs-nox
 PKGS_WORKSTATION += wine-devel # upstream ppa
+PKGS_WORKSTATION += qgis # upstream-ppa
+PKGS_WORKSTATION += openshot-qt # libopenshot libopenshot-audio # upstream ppa
 
 PKGS_WORKSTATION_REMOVE =
 PKGS_WORKSTATION_REMOVE += update-manager update-notifier
@@ -1008,11 +1028,15 @@ sysroot/tmp/teamviewer.deb:
 sysroot/tmp/zoom.deb:
 	wget -qO- https://zoom.us/client/latest/zoom_amd64.deb > $@
 
+sysroot/tmp/steam.deb:
+	wget -qO- https://repo.steampowered.com/steam/archive/precise/steam_latest.deb > $@
+
 .PHONY: DOWNLOADS_WORKSTATION
 DOWNLOADS_WORKSTATION: sysroot/tmp/google-chrome.deb
 DOWNLOADS_WORKSTATION: sysroot/tmp/google-earth.deb
 DOWNLOADS_WORKSTATION: sysroot/tmp/teamviewer.deb
 DOWNLOADS_WORKSTATION: sysroot/tmp/zoom.deb
+DOWNLOADS_WORKSTATION: sysroot/tmp/steam.deb
 
 PKGS_WORKSTATION_LOCAL =
 PKGS_WORKSTATION_LOCAL += google-chrome
@@ -1048,26 +1072,25 @@ workstation.sqsh: .build/RUCKUS-WORKSTATION-FINAL
 #
 # FIXME: prompt (e.g., dialog, whiptail) or cli for values?
 #
-# - prompt for top layer (ES, ES-file, ES-web, VMM, or Workstation)
-# - prompt for hostname (select from awesome-powers list? or just entry?)
-# - prompt for domain name (or prompt for fqdn above?)
+# - prompt for top layer (ES, ES-file, ES-auth, ES-web, Server, VMM, or Workstation)
+# - [OR FIRSTBOOT] prompt for hostname (select from awesome-powers list? or just entry?)
+# - [OR FIRSTBOOT] prompt for domain name (or prompt for fqdn above?)
 # - prompt for really destroy provided volume
 #
 # - create ext4 fs on provided device/volume
 # - create upper fs hierarchy upper/{upper,work}
 # - mount overlay appropriately
-# - /etc/hostname, /etc/mailname
-# - dbus-uuidgen > /etc/machine-id
+# - [OR FIRSTBOOT] /etc/hostname, /etc/mailname
+# - [OR FIRSTBOOT] dbus-uuidgen > /etc/machine-id
 #
 # via chroot:
 #
-# - root pw?  localadmin pw?
-# - /etc/fstab?
+# - [OR FIRSTBOOT] root pw?  localadmin pw?
 #
 # - dpkg-reconfigure
 #   - postfix (get the defaults seeded, run noninteractively to get fqdn right)
-#   - tzdata
-#   - locales
+#   - [OR FIRSTBOOT] tzdata
+#   - [OR FIRSTBOOT] locales
 #   - krb5-user? (or remove krb5.conf until user manually does this or installs the file?)
 #
 # - awesome-powers configenator
@@ -1083,10 +1106,17 @@ workstation.sqsh: .build/RUCKUS-WORKSTATION-FINAL
 #     - krb5.conf
 #     - pam.d/common-passwd (or change localadmin uid to 500?)
 #   - service enable/disable?
-#   - useradd -c "Local Administrator" -G adm,sudo,cdrom,dip,plugdev,lpadmin,lxd,sambashare -m -s /bin/zsh localadmin
+#   - [OR FIRSTBOOT] useradd -c "Local Administrator" -G adm,sudo,cdrom,dip,plugdev,lpadmin,lxd,sambashare -m -s /bin/zsh localadmin
 #
 #
 # - create new host.sqsh from overlay mount (perhaps?)
+# - or maybe actually copy the overlay mount into a new flat (but
+#   uncompressed) sysroot dir to avoid overhead of overlay and
+#   compression??
 #
 # NOTE: time-out... i think the installer might just end up living in
 #       awesome-powers...
+#
+#       actually, i think a good protion of this is going to end up in
+#       a firstboot boot param in ruckusrd.
+#
