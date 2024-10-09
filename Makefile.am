@@ -178,6 +178,22 @@ sysroot/etc/apt/sources.list.d/qgis.list:
 	wget -qO- https://download.qgis.org/downloads/qgis-archive-keyring.gpg | $(CHROOT) tee /etc/apt/keyrings/qgis.gpg
 	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/qgis.gpg] https://qgis.org/ubuntu noble main" > $@
 
+# FIXME: This is a mess...  unifi requires mongodb >= 3.6.0 but <<
+#        7.1.0.  I can only get an 8.0 ppa for noble, but I think I
+#        can get a 7.0 ppa for jammy... let's try that for now.
+#
+sysroot/etc/apt/sources.list.d/mongodb.list:
+	$(MAKE) sysroot-mount-vfs
+#	wget -qO- https://www.mongodb.org/static/pgp/server-8.0.asc | $(CHROOT) tee /etc/apt/keyrings/mongodb.asc
+#	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/mongodb.asc] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" > $@
+	wget -qO- https://www.mongodb.org/static/pgp/server-7.0.asc | $(CHROOT) tee /etc/apt/keyrings/mongodb.asc
+	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/mongodb.asc] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" > $@
+
+sysroot/etc/apt/sources.list.d/ubiquiti.list:
+	$(MAKE) sysroot-mount-vfs
+	wget -qO- https://dl.ui.com/unifi/unifi-repo.gpg | $(CHROOT) tee /etc/apt/keyrings/unifi.gpg
+	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/unifi.gpg] https://www.ui.com/downloads/unifi/debian stable ubiquiti" > $@
+
 # NOTE: We do this instead of using add-apt-repository to make things a bit
 #	more consistent in here and to avoid multiple apt update calls.
 sysroot/etc/apt/sources.list.d/linbit-drbd9.list:
@@ -601,7 +617,7 @@ endif
 .PHONY: PPAS_ES
 if !ES_DEVEL
 PPAS_ES: sysroot/etc/apt/sources.list.d/sourceruckus.list
-PPAS_ES: sysroot/etc/apt/sources.list.d/influxdb.list
+PPAS_ES: sysroot/etc/apt/sources.list.d/influxdb.list # for telegraf
 endif
 
 .build/RUCKUS-ES-3RDPARTY: .build/RUCKUS-ES-APT
@@ -758,8 +774,15 @@ es-auth.sqsh: .build/RUCKUS-ESAUTH-FINAL
 #
 # Based on ES, not ES-file, and adds web-server stuff.
 #
+# FIXME: double check influxdb version... at some point i ended up
+#        with the wrong version (ubuntu, not upstream) installed in
+#        here.  might have been a fluke, as I'd be walking through the
+#        rules randomly by hand testing things out
+#
 .PHONY: PPAS_ESWEB
 PPAS_ESWEB: sysroot/etc/apt/sources.list.d/grafana.list
+PPAS_ESWEB: sysroot/etc/apt/sources.list.d/mongodb.list
+PPAS_ESWEB: sysroot/etc/apt/sources.list.d/ubiquiti.list
 
 PKGS_ESWEB =
 PKGS_ESWEB += apache2 ssl-cert
@@ -772,30 +795,7 @@ PKGS_ESWEB += grafana # upstream ppa
 ### You can start grafana-server by executing
 # sudo /bin/systemctl start grafana-server
 #
-# FIXME: didn't mongodb get dropped from ubuntu?  looks like unifi
-#        delivers its own mongodb, too
-#PKGS_ESWEB += mongodb-server mongo-tools # for unifi
-
-# NOTE: I considered adding the unifi deb to my ppa... but I'm pretty
-#       sure it adds it's own ppa as upstream for updates, so that's
-#       probably a bad idea.  Instead, we'll have a list of local
-#       .debs to install (and rules to download them via wget).
-#
-# FIXME: ubiquiti now has it's own ppa, yay
-#
-# FIXME: it also needs us to add the mongodb ppa, though.
-#
-# https://help.ui.com/hc/en-us/articles/220066768-Updating-and-Installing-Self-Hosted-UniFi-Network-Servers-Linux
-#
-# https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/
-#
-# https://pcmasterx.com/index.php/blog/unifi-network-controller-install-on-ubuntu-server-24-04
-#
-#PKGS_ESWEB_LOCAL =
-#PKGS_ESWEB_LOCAL += unifi
-
-#sysroot/tmp/unifi.deb:
-#	wget -qO- https://dl.ui.com/unifi/7.1.66/unifi_sysvinit_all.deb > $@
+PKGS_ESWEB += unifi # upstream ppa, also pulls in old version of mongodb
 
 .build/RUCKUS-ESWEB-OVL:
 	$(MAKE) sysroot-clean
