@@ -120,6 +120,10 @@ upper_layer:
 #
 sysroot-clean:
 	$(MAKE) sysroot-umount-vfs
+	umount sysroot || echo not mounted
+	rm -rf sysroot
+	umount upper_layer || echo not mounted
+	rm -rf upper_layer
 	umount sqsh_layer-vmm || echo not mounted
 	rm -rf sqsh_layer-vmm
 	umount sqsh_layer-server || echo not mounted
@@ -132,10 +136,6 @@ sysroot-clean:
 	rm -rf sqsh_layer-es-file
 	umount sqsh_layer-es || echo not mounted
 	rm -rf sqsh_layer-es
-	umount upper_layer || echo not mounted
-	rm -rf upper_layer
-	umount sysroot || echo not mounted
-	rm -rf sysroot
 
 clean-local: sysroot-clean
 	rm -rf .build
@@ -807,6 +807,7 @@ PKGS_ESWEB += unifi # upstream ppa, also pulls in old version of mongodb
 .build/RUCKUS-ESWEB-PPAS: .build/RUCKUS-ESWEB-OVL
 	$(MAKE) sysroot-mount-vfs
 	$(MAKE) PPAS_ESWEB
+	$(CHROOT) apt update
 	touch $@
 
 # apt install
@@ -874,6 +875,7 @@ PKGS_SERVER += ltfs
 .build/RUCKUS-SERVER-PPAS: .build/RUCKUS-SERVER-OVL
 	$(MAKE) sysroot-mount-vfs
 	$(MAKE) PPAS_SERVER
+	$(CHROOT) apt update
 	touch $@
 
 # apt install
@@ -906,7 +908,9 @@ server.sqsh: .build/RUCKUS-SERVER-FINAL
 #
 # Based on Server, adds things needed for our VMM setup.
 #
-# NOTE: Currently just xen, but we could add other products here later.
+# NOTE: Currently just xen, but we could add other products here
+#       later.  Maybe XCP-ng, XAPI, or Xen Orchestra for making things
+#       prettier?
 #
 PKGS_VMM =
 PKGS_VMM += xen
@@ -960,7 +964,9 @@ vmm.sqsh: .build/RUCKUS-VMM-FINAL
 #   - special font packages (maybe?)
 #   - libglvnd-dev (what did i need this for...?)
 # - 3rd party stuff
-#   - ardour (wget the download, although I needed to pay for this didn't i...)
+#   - ardour (wget the download, although I needed to pay for this didn't i... should i just install the ubuntu debs?)
+#   - vmware player?
+#   - virtualbox?
 #
 .PHONY: PPAS_WORKSTATION
 PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/wine.list
