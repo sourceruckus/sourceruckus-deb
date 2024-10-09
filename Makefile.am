@@ -115,23 +115,26 @@ upper_layer:
 #       overlay).  manually unmounting and trying again seems to work,
 #       so i'm wonderingy if i should just drop the -l.
 #
+#       looks like i can't umount sysroot sometimes because gpg-agent
+#       is still running?
+#
 sysroot-clean:
 	$(MAKE) sysroot-umount-vfs
-	umount -l sqsh_layer-vmm || echo not mounted
+	umount sqsh_layer-vmm || echo not mounted
 	rm -rf sqsh_layer-vmm
-	umount -l sqsh_layer-server || echo not mounted
+	umount sqsh_layer-server || echo not mounted
 	rm -rf sqsh_layer-server
-	umount -l sqsh_layer-es-web || echo not mounted
+	umount sqsh_layer-es-web || echo not mounted
 	rm -rf sqsh_layer-es-web
-	umount -l sqsh_layer-es-auth || echo not mounted
+	umount sqsh_layer-es-auth || echo not mounted
 	rm -rf sqsh_layer-es-auth
-	umount -l sqsh_layer-es-file || echo not mounted
+	umount sqsh_layer-es-file || echo not mounted
 	rm -rf sqsh_layer-es-file
-	umount -l sqsh_layer-es || echo not mounted
+	umount sqsh_layer-es || echo not mounted
 	rm -rf sqsh_layer-es
-	umount -l upper_layer || echo not mounted
+	umount upper_layer || echo not mounted
 	rm -rf upper_layer
-	umount -l sysroot || echo not mounted
+	umount sysroot || echo not mounted
 	rm -rf sysroot
 
 clean-local: sysroot-clean
