@@ -599,8 +599,6 @@ endif
 if !ES_DEVEL
 PPAS_ES: sysroot/etc/apt/sources.list.d/sourceruckus.list
 PPAS_ES: sysroot/etc/apt/sources.list.d/influxdb.list
-PPAS_ES: sysroot/etc/apt/sources.list.d/grafana.list
-PPAS_ES: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
 endif
 
 .build/RUCKUS-ES-3RDPARTY: .build/RUCKUS-ES-APT
@@ -757,11 +755,14 @@ es-auth.sqsh: .build/RUCKUS-ESAUTH-FINAL
 #
 # Based on ES, not ES-file, and adds web-server stuff.
 #
+.PHONY: PPAS_ESWEB
+PPAS_ESWEB: sysroot/etc/apt/sources.list.d/grafana.list
+
 PKGS_ESWEB =
 PKGS_ESWEB += apache2 ssl-cert
 PKGS_ESWEB += javascript-common
-PKGS_ESWEB += influxdb #  upstream ppa added already
-PKGS_ESWEB += grafana # upstream ppa added already
+PKGS_ESWEB += influxdb #  upstream ppa added in ES
+PKGS_ESWEB += grafana # upstream ppa
 ### NOT starting on installation, please execute the following statements to configure grafana to start automatically using systemd
 # sudo /bin/systemctl daemon-reload
 # sudo /bin/systemctl enable grafana-server
@@ -800,8 +801,13 @@ PKGS_ESWEB += grafana # upstream ppa added already
 	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
 
+.build/RUCKUS-ESWEB-PPAS: .build/RUCKUS-ESWEB-OVL
+	$(MAKE) sysroot-mount-vfs
+	$(MAKE) PPAS_ESWEB
+	touch $@
+
 # apt install
-.build/RUCKUS-ESWEB-APT: .build/RUCKUS-ESWEB-OVL
+.build/RUCKUS-ESWEB-APT: .build/RUCKUS-ESWEB-PPAS
 	$(MAKE) sysroot-mount-vfs
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_ESWEB)
 	touch $@
@@ -828,8 +834,11 @@ es-web.sqsh: .build/RUCKUS-ESWEB-FINAL
 # virtual machine), so it's where we start to add in bootloader and
 # more hardware-centric things.
 #
+.PHONY: PPAS_SERVER
+PPAS_SERVER: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
+
 PKGS_SERVER =
-PKGS_SERVER += drbd-utils # from previously added upstream ppa
+PKGS_SERVER += drbd-utils # upstream ppa
 PKGS_SERVER += $(PKGS_ZFS)
 PKGS_SERVER += $(PKGS_FILESHARING)
 PKGS_SERVER += ruckusrd
@@ -859,8 +868,13 @@ PKGS_SERVER += ltfs
 	mount -t overlay -o lowerdir=sqsh_layer-es,upperdir=upper_layer/upper,workdir=upper_layer/work none sysroot
 	touch $@
 
+.build/RUCKUS-SERVER-PPAS: .build/RUCKUS-SERVER-OVL
+	$(MAKE) sysroot-mount-vfs
+	$(MAKE) PPAS_SERVER
+	touch $@
+
 # apt install
-.build/RUCKUS-SERVER-APT: .build/RUCKUS-SERVER-OVL
+.build/RUCKUS-SERVER-APT: .build/RUCKUS-SERVER-PPAS
 	$(MAKE) sysroot-mount-vfs
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_SERVER)
 	touch $@
@@ -949,7 +963,6 @@ vmm.sqsh: .build/RUCKUS-VMM-FINAL
 PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/wine.list
 PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/qgis.list
 PPAS_WORKSTATION: sysroot/etc/apt/sources.list.d/openshot.list
-
 
 PKGS_WORKSTATION =
 PKGS_WORKSTATION += ubuntu-desktop
