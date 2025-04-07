@@ -7,6 +7,7 @@
 /sqsh_layer-server
 /sqsh_layer-vmm
 /upper_layer
+/iso
 
 # autotools files
 Makefile
@@ -26,12 +27,16 @@ Makefile.in
 /missing
 /test-driver
 
-# built files
-es-auth.sqsh
-es-devel.sqsh
-es-file.sqsh
-es-web.sqsh
-es.sqsh
-server.sqsh
-vmm.sqsh
-workstation.sqsh
+# built sqsh files
+/es-auth.sqsh
+/es-devel.sqsh
+/es-file.sqsh
+/es-web.sqsh
+/es.sqsh
+/server.sqsh
+/vmm.sqsh
+/workstation.sqsh
+
+# other built files
+/syslinux.cfg
+/sourceruckus.iso

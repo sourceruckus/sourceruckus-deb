@@ -1,0 +1,34 @@
+default menu.c32
+timeout 50
+
+menu title Source Ruckus Linux
+menu rows 5
+menu passwordrow 4
+menu tabmsgrow 11
+menu cmdlinerow 11
+menu timeoutrow 13
+menu endrow 17
+menu color border 0 #ffffffff #00000000
+menu color sel 7 #ffffffff #ffd09000
+menu color title 0 #ffffffff #00000000
+menu color tabmsg 0 #ffffffff #00000000
+menu color unsel 0 #ffffffff #00000000
+menu color hotsel 0 #ff000000 #ffffffff
+menu color hotkey 7 #ffffffff #ff000000
+menu color timeout_msg 0 #ffffffff #00000000
+menu color timeout 0 #ffffffff #00000000
+menu color cmdline 0 #ffffffff #00000000
+menu hidden
+menu hiddenrow 5
+menu autoboot "Booting default in # second{,s}..."
+
+label ruckus
+ menu label Source Ruckus Linux
+ linux /@ISOKERNEL@
+ append initrd=/@ISOINITRD@ root=LABEL=sourceruckus consoleblank=300 initramsys
+ menu default
+
+label ruckusinst
+ menu label Source Ruckus Linux Installer
+ linux /@ISOKERNEL@
+ append initrd=/@ISOINITRD@ root=LABEL=sourceruckus consoleblank=300 initramsys-installer

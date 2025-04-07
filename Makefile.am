@@ -1145,20 +1145,7 @@ workstation.sqsh: .build/RUCKUS-WORKSTATION-FINAL
 
 
 
-# FIXME: hm... where should we get kernel files from?  and syslinux
-#        files?  all we really know about in here is the .sqsh files
-#        we've built.  seems like this needs to take some arguments,
-#        although i suppose we could take current running kernel and
-#        it's associated initrd and look on the system for syslinux
-#        files.
-#
-KERNEL_FILES=$(abspath $(wildcard /boot/*6.6.y* /scrap/ruckusrd/src/initrd-6.6.52-mdl+-testrd2.img))
-SYSLINUX_FILES=$(abspath $(wildcard /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/efi64/*))
-FW_FILES=$(abspath $(wildcard /scrap/ruckusrd/subprojects/fw.sqsh))
-SQSH_FILES=$(abspath $(wildcard /mnt/sqsh_layerdev/noble/*.sqsh))
-
-# FIXME: syslinux.cfg
-
+# FIXME: fwdev=?
 sourceruckus.iso:
 	mkdir -p iso/images
 	for x in $(SQSH_FILES); do \
@@ -1173,5 +1160,5 @@ sourceruckus.iso:
 	mkdir -p iso/EFI/boot
 	ln -vfs $(SYSLINUX_FILES) iso/EFI/boot/
 	mv -v iso/EFI/boot/syslinux.efi iso/EFI/boot/bootx64.efi
-	echo "now call mkisofs and make sure it dereferences symlinks"
+	cp syslinux.cfg iso/EFI/boot/
 	mkisofs -rdlJf -V sourceruckus -o $@ iso

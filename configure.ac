@@ -106,7 +106,34 @@ AM_CONDITIONAL([ES_DEVEL], [test x$ES_DEVEL = xyes])
 
 AC_SUBST(IMG_LIST, $img_list)
 
+
+# NOTE: The extra `echo` here is to force variables to be a single space-delimited line
+#
+# FIXME: these should have sane defaults, but i'm setting them to my
+#        specific system during development.
+#
+KERNEL_FILES=$(echo $(realpath /boot/*6.6.y* /scrap/ruckusrd/src/initrd-6.6.52-mdl+-testrd2.img))
+SYSLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/efi64/*))
+FW_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/fw.sqsh))
+SQSH_FILES=$(echo $(realpath /mnt/sqsh_layerdev/noble/*.sqsh))
+
+# NOTE: This is going to select the LAST specified kernel and initrd
+#       file, in case there are duplicates.  The thinking being, if
+#       you want to override the system's initrd you can just add it
+#       to KERNEL_FILES last.
+#
+ISOKERNEL=$(basename $(echo $KERNEL_FILES | tr ' ' '\n' | grep vmlinuz | tr '\n' ' ' | awk '{print $NF}'))
+ISOINITRD=$(basename $(echo $KERNEL_FILES | tr ' ' '\n' | grep initrd | tr '\n' ' ' | awk '{print $NF}'))
+
+AC_ARG_VAR(KERNEL_FILES, [Kernel files to include on the ISO.])
+AC_ARG_VAR(SYSLINUX_FILES, [Syslinux files to include on the ISO.])
+AC_ARG_VAR(FW_FILES, [Firmware files to include on the ISO.])
+AC_ARG_VAR(SQSH_FILES, [Sqsh files to include on the ISO.])
+AC_ARG_VAR(ISOKERNEL, [The kernel file for the ISO to boot.])
+AC_ARG_VAR(ISOINITRD, [The initrd file for the ISO to boo.])
+
 AC_CONFIG_FILES([Makefile
+		 syslinux.cfg
 		 ])
 AC_OUTPUT
 
@@ -121,4 +148,11 @@ echo "Configuration Options Summary:"
 echo
 echo "Enabled Sqsh Images:"
 echo "  $img_list"
+echo
+#echo "ISO Kernel Files: $KERNEL_FILES"
+#echo "ISO Syslinux Files: $SYSLINUX_FILES"
+#echo "ISO Firmware Files: $FW_FILES"
+#echo "ISO Sqsh Files: $SQSH_FILES"
+echo "ISOKERNEL: $ISOKERNEL"
+echo "ISOINITRD: $ISOINITRD"
 echo
