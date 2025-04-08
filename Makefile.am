@@ -1155,6 +1155,7 @@ sourceruckus.iso:
 	    ln -vfs $$x iso/images/ ; \
 	  fi \
 	done
+	cp sqsh_layers.conf iso/images/
 	ln -vfs $(FW_FILES) iso/
 	ln -vfs $(KERNEL_FILES) iso/
 	mkdir -p iso/EFI/boot
