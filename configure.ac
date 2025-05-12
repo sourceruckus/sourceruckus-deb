@@ -112,7 +112,7 @@ AC_SUBST(IMG_LIST, $img_list)
 # FIXME: these should have sane defaults, but i'm setting them to my
 #        specific system during development.
 #
-KERNEL_FILES=$(echo $(realpath /boot/*6.6.y* /scrap/ruckusrd/src/initrd-6.6.52-mdl+-testrd2.img))
+KERNEL_FILES=$(echo $(realpath /boot/*6.12.y* /scrap/ruckusrd/src/initrd-6.12*.img))
 SYSLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/efi64/*))
 FW_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/fw.sqsh))
 SQSH_FILES=$(echo $(realpath /mnt/sqsh_layerdev/noble/*.sqsh))
