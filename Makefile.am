@@ -267,7 +267,7 @@ PKGS_COMPILATION += dwarves # needed by kernel CONFIG_DEBUG_INFO_BTF
 PKGS_COMPILATION += libkmod-dev libblkid-dev # for eudev
 PKGS_COMPILATION += libaio-dev # for lvm2
 PKGS_COMPILATION += liblz4-dev liblzma-dev libzstd-dev zlib1g-dev liblzo2-dev # for squashfs-tools
-PKGS_COMPILATION += libssl-dev libtirpc-dev # for zfs
+PKGS_COMPILATION += libssl-dev libtirpc-dev libunwind-dev # for zfs
 PKGS_COMPILATION += libacl1-dev libattr1-dev libext2fs-dev libpopt-dev libltdl-dev xxhash libxxhash-dev # for rsync
 PKGS_COMPILATION += libefivar1t64 libefivar-dev libefiboot1t64 libefiboot-dev # for efibootmgr
 PKGS_COMPILATION += netpbm # for groff
@@ -890,6 +890,11 @@ PKGS_SERVER += ltfs
 #
 # FIXME: audit services
 #
+# FIXME: we should move zfs to es and enable the services there.  this
+#        wasn't the original plan, but now that i've added
+#        initramsys-installer to ruckusrd, it's using ZFS for the
+#        rootfs (overlayed with sqsh_layers).  So, we kinda need it.
+#
 .build/RUCKUS-SERVER-FINAL: .build/RUCKUS-SERVER-APT
 	$(MAKE) sysroot-mount-vfs
 	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
@@ -996,7 +1001,7 @@ PKGS_WORKSTATION += wireshark gkrellm gitk git-gui
 PKGS_WORKSTATION += vlc
 PKGS_WORKSTATION += gnome-tweaks rdesktop
 PKGS_WORKSTATION += emacs-gtk # replaces emacs-nox
-PKGS_WORKSTATION += wine-devel # upstream ppa
+PKGS_WORKSTATION += wine-devel # upstream ppa # FIXME: this causes upgrade to fail... once?
 PKGS_WORKSTATION += qgis # upstream-ppa
 PKGS_WORKSTATION += openshot-qt # libopenshot libopenshot-audio # upstream ppa
 
@@ -1086,62 +1091,6 @@ workstation.sqsh: .build/RUCKUS-WORKSTATION-FINAL
 	$(MAKE) sysroot-umount-vfs
 	mksquashfs upper_layer/upper $@ $(SQSH_COMP) -noappend -wildcards
 
-
-
-
-
-# Things for installer to do:
-#
-# FIXME: prompt (e.g., dialog, whiptail) or cli for values?
-#
-# - prompt for top layer (ES, ES-file, ES-auth, ES-web, Server, VMM, or Workstation)
-# - [OR FIRSTBOOT] prompt for hostname (select from awesome-powers list? or just entry?)
-# - [OR FIRSTBOOT] prompt for domain name (or prompt for fqdn above?)
-# - prompt for really destroy provided volume
-#
-# - create ext4 fs on provided device/volume
-# - create upper fs hierarchy upper/{upper,work}
-# - mount overlay appropriately
-# - [OR FIRSTBOOT] /etc/hostname, /etc/mailname
-# - [OR FIRSTBOOT] dbus-uuidgen > /etc/machine-id
-#
-# via chroot:
-#
-# - [OR FIRSTBOOT] root pw?  localadmin pw?
-#
-# - dpkg-reconfigure
-#   - postfix (get the defaults seeded, run noninteractively to get fqdn right)
-#   - [OR FIRSTBOOT] tzdata
-#   - [OR FIRSTBOOT] locales
-#   - krb5-user? (or remove krb5.conf until user manually does this or installs the file?)
-#
-# - awesome-powers configenator
-#   - update && pull first?
-#   - use specified hostname if unique with match, or prompt for host/site
-#   - get the following things cm'd:
-#     - grkrellmd
-#     - unattended-upgrades
-#     - sshd.conf
-#     - ssh.conf
-#     - autofs
-#     - telegraf.conf
-#     - krb5.conf
-#     - pam.d/common-passwd (or change localadmin uid to 500?)
-#   - service enable/disable?
-#   - [OR FIRSTBOOT] useradd -c "Local Administrator" -G adm,sudo,cdrom,dip,plugdev,lpadmin,lxd,sambashare -m -s /bin/zsh localadmin
-#
-#
-# - create new host.sqsh from overlay mount (perhaps?)
-# - or maybe actually copy the overlay mount into a new flat (but
-#   uncompressed) sysroot dir to avoid overhead of overlay and
-#   compression??
-#
-# NOTE: time-out... i think the installer might just end up living in
-#       awesome-powers...
-#
-#       actually, i think a good protion of this is going to end up in
-#       a firstboot boot param in ruckusrd.
-#
 
 
 
