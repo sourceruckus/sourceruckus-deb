@@ -1116,10 +1116,22 @@ sourceruckus.iso:
 	cp -v /usr/lib/syslinux/modules/bios/ldlinux.c32 iso/isolinux/
 	cp -v /usr/lib/syslinux/modules/bios/{chain,libcom32,libutil,menu,vesamenu}.c32 iso/isolinux/
 	cp -v syslinux.cfg iso/isolinux/isolinux.cfg
-	mkisofs -rdlJf -V sourceruckus -cache-inodes \
+	genisoimage -rdlf -V sourceruckus \
 	  -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot \
 	  -boot-load-size 4 -boot-info-table \
 	  -o $@ iso
+	isohybrid $@
+#	xorriso -as mkisofs \
+#	  -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
+#	  -c isolinux/boot.cat -b isolinux/isolinux.bin \
+#	  -no-emul-boot \
+#	  -boot-load-size 4 -boot-info-table \
+#	  -eltorito-alt-boot \
+#	  -e EFI/boot/bootx64.efi \
+#	  -no-emul-boot \
+#	  -isohybrid-gpt-basdat \
+#	  -f -V sourceruckus \
+#	  -o sourceruckus-xorriso.iso iso/
 
 # FIXME: I need to figure out how to setup BIOS/EFI bootloader support
 #        in a single ISO.  Read a bunch of stuff on the flight out
@@ -1139,16 +1151,17 @@ sourceruckus.iso:
 #        also, it could just be a traditional MBR/BIOS bootable
 #        ISO... those still work everywhere don't they?
 #
-# 
+#
 # xorriso -as mkisofs \
-#   -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
-#   -c isolinux/boot.cat -b isolinux/isolinux.bin \
+#   -isohybrid-mbr /usr/lib/syslinux/mbr/isohdpfx.bin \
+#   -c isolinux/boot.cat \
+#   -b isolinux/isolinux.bin \
 #   -no-emul-boot \
-#   -boot-load-size 4 -boot-info-table \
+#   -boot-load-size 4 \
+#   -boot-info-table \
 #   -eltorito-alt-boot \
-#   -e EFI/boot/bootx64.efi \
+#   -e boot/grub/efi.img \
 #   -no-emul-boot \
 #   -isohybrid-gpt-basdat \
-#   -f -J -V sourceruckus \
-#   -o sourceruckus-xorriso.iso iso/
-# 
+#   -o /path/to/tmp.iso \
+#   /path/to/tmp
