@@ -117,7 +117,7 @@ SYSLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/sh
 ISOLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/{isolinux.bin,{ldlinux,libcom32,libutil,menu,vesamenu,chain}.c32}))
 ISOHYBRID=/scrap/ruckusrd/subprojects/syslinux/FOO/usr/bin/isohybrid
 FW_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/fw.sqsh))
-SQSH_FILES=$(echo $(realpath /mnt/sqsh_layerdev/noble/es.sqsh))
+SQSH_FILES=$(echo $(realpath /mnt/sqsh_layerdev/noble/*.sqsh))
 
 # NOTE: This is going to select the LAST specified kernel and initrd
 #       file, in case there are duplicates.  The thinking being, if

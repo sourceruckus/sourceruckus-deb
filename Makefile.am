@@ -1119,8 +1119,11 @@ installer-common/.DONE:
 	touch $@
 
 installer-iso/.DONE: installer-common/.DONE
+	pushd installer-common && \
+	  find -L * -type d -exec mkdir -vp ../installer-iso/{} \; && \
+	  find -L * -type f -exec ln -vs $(abs_srcdir)/installer-common/{} ../installer-iso/{} \; && \
+	  popd
 	mkdir -p installer-iso/isolinux
-	cp -va installer-common/* installer-iso/
 	ln -vs $(ISOLINUX_FILES) installer-iso/isolinux/
 	cp -v syslinux.cfg installer-iso/isolinux/isolinux.cfg
 	mkdir -p installer-iso/EFI/boot
@@ -1142,6 +1145,7 @@ installer-iso/.DONE: installer-common/.DONE
 #        https://wiki.syslinux.org/wiki/index.php?title=ISOLINUX
 #        https://wiki.syslinux.org/wiki/index.php?title=Isohybrid
 #        https://unix.stackexchange.com/questions/283846/why-can-my-custom-build-iso-not-boot-in-efi
+#        https://unix.stackexchange.com/questions/312789/making-a-uefi-bootable-image-with-mkisofs-and-eltorito-boot-efiboot-img
 #
 #        For now, we'll still create the .iso, and include the
 #        systlinux stuff that doesn't work because it doesn't hurt
@@ -1163,8 +1167,11 @@ sourceruckus.iso: installer-iso/.DONE
 	$(ISOHYBRID) --uefi $@
 
 installer-usb/.DONE: installer-common/.DONE
+	pushd installer-common && \
+	  find -L * -type d -exec mkdir -vp ../installer-usb/{} \; && \
+	  find -L * -type f -exec ln -vs $(abs_srcdir)/installer-common/{} ../installer-usb/{} \; && \
+	  popd
 	mkdir -p installer-usb/EFI/boot
-	cp -va installer-common/* installer-usb/
 	ln -vs $(SYSLINUX_FILES) installer-usb/EFI/boot/
 	mv -v installer-usb/EFI/boot/syslinux.efi installer-usb/EFI/boot/bootx64.efi
 	cat syslinux.cfg | sed 's|=sourceruckus|=ruckususb|g' > installer-usb/EFI/boot/syslinux.cfg
@@ -1182,17 +1189,27 @@ installer-usb/.DONE: installer-common/.DONE
 #           thumb drive.
 #        2. set the vfat label to "ruckususb"
 #
-#ruckususb.img: installer-usb/.DONE
-#	dd if=/dev/zero of=$@.tmp bs=1M skip=12K
-#	sfdisk (new gpt, single partition, type 1 (EFI))
-#       mkfs.vfat -n ruckususb
-#	mkdir -p t
-#       mount on t
-#       cp -vrL --preserve=mode,timestamps installer-usb/* t/
+ruckususb.img: installer-usb/.DONE
+	dd if=/dev/zero of=$@.tmp bs=1M seek=12K count=0
+	echo -e "label:gpt\n,,," | sfdisk $@.tmp
+	mkfs.vfat -n ruckususb $@.tmp
+	mkdir -p t
+	sudo mount $@.tmp t
+	sudo cp -vrL --preserve=mode,timestamps installer-usb/* t/
+	sudo umount t
+	rmdir t
+	mv $@.tmp $@
+
 
 #
 # FIXME: could aslo make a target for just creating an empty flash
-#        drive with kernel/initrd/syslinux... (i.e., leave out the
+#        drive with kernel/initrd/fw/syslinux... (i.e., leave out the
 #        images, just for initramsys resuce disk) we'd want to sed the
 #        installer lines out of syslinux.cfg if we do that.
 #
+
+
+installer-clean:
+	rm -rf installer-*
+	rm -f sourceruckus.iso
+	rm -f ruckususb.img
