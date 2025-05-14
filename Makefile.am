@@ -1182,21 +1182,27 @@ installer-usb/.DONE: installer-common/.DONE
 # suppose that's not a huge deal since the all the debootstrap stuff
 # above needs root privs, too.
 #
-# FIXME: this is all fine and dandy, but am i still trying too hard?
-#        All I really need to do is:
+# NOTE: Once dd-ing this onto a flash drive, the kernel will complain
+#       about the partition table not ending at the end of the disk
+#       (assuming your flash drive isn't exactly 12G).  It doesn't
+#       hurt anything, but if you, this warning can be fixed by
+#       running `gdisk /dev/whatever`, going into expert mode, doing
+#       `v`, and following the instructions.
 #
-#        1. copy installer-usb/* (following symlinks) into a vfat
-#           thumb drive.
-#        2. set the vfat label to "ruckususb"
+# FIXME: copy-paste the actual warning message
 #
 ruckususb.img: installer-usb/.DONE
+	rm -f $@.tmp
 	dd if=/dev/zero of=$@.tmp bs=1M seek=12K count=0
 	echo -e "label:gpt\n,,," | sfdisk $@.tmp
-	mkfs.vfat -n ruckususb $@.tmp
 	mkdir -p t
-	sudo mount $@.tmp t
-	sudo cp -vrL --preserve=mode,timestamps installer-usb/* t/
-	sudo umount t
+	loop=$$(losetup -f) && \
+	  sudo losetup -P $$loop $@.tmp && \
+	  sudo mkfs.vfat -n ruckususb $${loop}p1 && \
+	  sudo mount $${loop}p1 t && \
+	  sudo cp -vrL --preserve=mode,timestamps installer-usb/* t/ && \
+	  sudo umount t && \
+	  sudo losetup -d $$loop
 	rmdir t
 	mv $@.tmp $@
 
