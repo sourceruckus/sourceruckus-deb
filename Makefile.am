@@ -1093,75 +1093,97 @@ workstation.sqsh: .build/RUCKUS-WORKSTATION-FINAL
 
 
 
+# Targets for building bootable installers
 
-# FIXME: fwdev=?
-sourceruckus.iso:
-	mkdir -p iso/images
+installer-common/.DONE:
+	mkdir -p installer-common/images
 	for x in $(SQSH_FILES); do \
 	  if [ $$(stat -c %s $$x) -ge $$((4*1024*1024*1024)) ]; then \
-	    split -b 2G -d --verbose $$x iso/images/$$(basename $$x)SPLIT ; \
+	    split -b 2G -d --verbose $$x installer-common/images/$$(basename $$x)SPLIT ; \
 	  else \
-	    ln -vfs $$x iso/images/ ; \
+	    ln -vs $$x installer-common/images/ ; \
 	  fi \
 	done
-	cp sqsh_layers.conf iso/images/
-	ln -vfs $(FW_FILES) iso/
-	ln -vfs $(KERNEL_FILES) iso/
-	mkdir -p iso/EFI/boot
-	ln -vfs $(SYSLINUX_FILES) iso/EFI/boot/
-	mv -v iso/EFI/boot/syslinux.efi iso/EFI/boot/bootx64.efi
-	cp syslinux.cfg iso/EFI/boot/
-	mkdir iso/isolinux
-	cp -v /usr/lib/ISOLINUX/isolinux.bin iso/isolinux/
-	cp -v /usr/lib/syslinux/modules/bios/ldlinux.c32 iso/isolinux/
-	cp -v /usr/lib/syslinux/modules/bios/{chain,libcom32,libutil,menu,vesamenu}.c32 iso/isolinux/
-	cp -v syslinux.cfg iso/isolinux/isolinux.cfg
+	ln -vs $(abs_srcdir)/sqsh_layers.conf installer-common/images/
+	ln -vs $(FW_FILES) installer-common/
+	ln -vs $(KERNEL_FILES) installer-common/
+	touch $@
+
+installer-iso/.DONE: installer-common/.DONE
+	mkdir -p installer-iso/isolinux
+	cp -va installer-common/* installer-iso/
+	ln -vs $(ISOLINUX_FILES) installer-iso/isolinux/
+	cp -v syslinux.cfg installer-iso/isolinux/isolinux.cfg
+	mkdir -p installer-iso/EFI/boot
+	ln -vs $(SYSLINUX_FILES) installer-iso/EFI/boot/
+	mv -v installer-iso/EFI/boot/syslinux.efi installer-iso/EFI/boot/bootx64.efi
+	cp -v syslinux.cfg installer-iso/EFI/boot/
+	touch $@
+
+# FIXME: I can't seen to figure out any way to boot syslinux or
+#        isolinux via EFI from an ISO... I'm starting to suspect you
+#        just can't (i.e., becuase isolinux only supports BIOS and
+#        syslinux doesn't support IS9660), which is awkward.
+#
+#        This does create a perfectly usable ISO that boots in BIOS
+#        mode, but then the installer cannot access EFIVARS
+#
+#        Note the -eltorito-alt-boot .... -no-emul-boot lines
+#
+#        https://wiki.syslinux.org/wiki/index.php?title=ISOLINUX
+#        https://wiki.syslinux.org/wiki/index.php?title=Isohybrid
+#        https://unix.stackexchange.com/questions/283846/why-can-my-custom-build-iso-not-boot-in-efi
+#
+#        For now, we'll still create the .iso, and include the
+#        systlinux stuff that doesn't work because it doesn't hurt
+#        anything and maybe I'm just doing it slightly wrong?  But
+#        we'll also create an installer-usb directory that can just be
+#        copied to a vfat flash disk to be an EFI bootable installer
+#
+#        We could revisit this and switch from syslinux to
+#        systemd-boot or grub2 to get a bootable iso...
+#
+sourceruckus.iso: installer-iso/.DONE
 	genisoimage -rdlf -V sourceruckus \
 	  -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot \
 	  -boot-load-size 4 -boot-info-table \
-	  -o $@ iso
-	isohybrid $@
-#	xorriso -as mkisofs \
-#	  -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin \
-#	  -c isolinux/boot.cat -b isolinux/isolinux.bin \
-#	  -no-emul-boot \
-#	  -boot-load-size 4 -boot-info-table \
-#	  -eltorito-alt-boot \
-#	  -e EFI/boot/bootx64.efi \
-#	  -no-emul-boot \
-#	  -isohybrid-gpt-basdat \
-#	  -f -V sourceruckus \
-#	  -o sourceruckus-xorriso.iso iso/
+	  -eltorito-alt-boot \
+	  -e EFI/boot/bootx64.efi \
+	  -no-emul-boot \
+	  -o $@ -m .DONE installer-iso
+	$(ISOHYBRID) --uefi $@
 
-# FIXME: I need to figure out how to setup BIOS/EFI bootloader support
-#        in a single ISO.  Read a bunch of stuff on the flight out
-#        here, but couldn't download things from the plane.
+installer-usb/.DONE: installer-common/.DONE
+	mkdir -p installer-usb/EFI/boot
+	cp -va installer-common/* installer-usb/
+	ln -vs $(SYSLINUX_FILES) installer-usb/EFI/boot/
+	mv -v installer-usb/EFI/boot/syslinux.efi installer-usb/EFI/boot/bootx64.efi
+	cat syslinux.cfg | sed 's|=sourceruckus|=ruckususb|g' > installer-usb/EFI/boot/syslinux.cfg
+	touch $@
+
+# Using dd to write this img file to a flash drive results in a UEFI
+# bootable installer, but requires us to run this target as root.  I
+# suppose that's not a huge deal since the all the debootstrap stuff
+# above needs root privs, too.
 #
-#        https://bbs.archlinux.org/viewtopic.php?id=106087
+# FIXME: this is all fine and dandy, but am i still trying too hard?
+#        All I really need to do is:
 #
-#        https://superuser.com/questions/1657478/how-make-a-bootable-iso-for-my-uefi-application-bare-bones
+#        1. copy installer-usb/* (following symlinks) into a vfat
+#           thumb drive.
+#        2. set the vfat label to "ruckususb"
 #
-#        https://askubuntu.com/questions/625286/how-to-create-uefi-bootable-iso
+#ruckususb.img: installer-usb/.DONE
+#	dd if=/dev/zero of=$@.tmp bs=1M skip=12K
+#	sfdisk (new gpt, single partition, type 1 (EFI))
+#       mkfs.vfat -n ruckususb
+#	mkdir -p t
+#       mount on t
+#       cp -vrL --preserve=mode,timestamps installer-usb/* t/
+
 #
-#        https://wiki.syslinux.org/wiki/index.php?title=Isohybrid
+# FIXME: could aslo make a target for just creating an empty flash
+#        drive with kernel/initrd/syslinux... (i.e., leave out the
+#        images, just for initramsys resuce disk) we'd want to sed the
+#        installer lines out of syslinux.cfg if we do that.
 #
-#        anyway, maybe i'm overthinking this.  does it *have* to be an
-#        iso?  I could just make a disk image to dd onto flash drives.
-#
-#        also, it could just be a traditional MBR/BIOS bootable
-#        ISO... those still work everywhere don't they?
-#
-#
-# xorriso -as mkisofs \
-#   -isohybrid-mbr /usr/lib/syslinux/mbr/isohdpfx.bin \
-#   -c isolinux/boot.cat \
-#   -b isolinux/isolinux.bin \
-#   -no-emul-boot \
-#   -boot-load-size 4 \
-#   -boot-info-table \
-#   -eltorito-alt-boot \
-#   -e boot/grub/efi.img \
-#   -no-emul-boot \
-#   -isohybrid-gpt-basdat \
-#   -o /path/to/tmp.iso \
-#   /path/to/tmp
