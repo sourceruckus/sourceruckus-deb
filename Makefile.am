@@ -46,6 +46,15 @@ SQSH_COMP=-comp zstd
 
 # NOTE: If --enable-devel was sepcified, we're building a devel-enabled base
 #       image w/out 3rd party packages.
+#
+# FIXME: maybe for next time, we could rename es-devel to
+#        es-bootstrap, then add a real finished es-devel (es
+#        +compilation toolchain, maybe less stuff then bootstrap)
+#
+# FIXME: also, maybe later... we could rename workstation to
+#        everything or desktop and add a workstation that has most of
+#        everything but w/out 32bit multilib?
+#
 all: @IMG_LIST@
 
 info:
