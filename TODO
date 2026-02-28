@@ -1,1 +1,12 @@
-plenty
+- add redundant esp support to kernel-builder (redundant /boot dirs,
+  really).  or, could add a espsync.service that rsyncs from /boot to
+  /bootN... but how would be sure to pick the right one as source?
+  what if /boot is for some reason full of cruft and the user booted
+  off /boot2?  can we tell somehow which one we booted from? yeah, we
+  can look at bootcurrent in efibootmgr output and do a lookup.
+
+- Even better than that^^^^, let's go write replicatenator to use
+  inotify to keep redundant ESPs synced up.  Could use it for drbd
+  resources files and/or domU config files on our vmm, too
+
+- update kernel's again, once ruckusrd 0.22 is released.

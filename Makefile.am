@@ -258,6 +258,7 @@ PKGS_FILESHARING =
 PKGS_FILESHARING += nfs-kernel-server
 PKGS_FILESHARING += samba samba-dsdb-modules samba-vfs-modules
 PKGS_FILESHARING += wsdd
+PKGS_FILESHARING += clamav
 
 PKGS_ZFS =
 PKGS_ZFS += zfs # our package, from sourceruckus ppa
@@ -434,6 +435,30 @@ PKGS_COMPILATION += r-base-dev
 #       (i.e., if we wait until "finalization" of es.sqsh, it's too late -
 #       we've got gkrellmd and telegraf as 999 and 998).
 #
+# FIXME: bugger, this isn't working quite right with noble.
+#        localadmin is 999 (that's fine), but systemd-network is 998,
+#        systemd-timesync is 996, systemd-resolve is 991, polkitd is
+#        990, fwupd-refresh is 989, systemd-oom is 988,
+#        gnome-remote-desktop is 987. Those are all system users that
+#        should have been <500.
+#
+# FIXME: accountservice ignores this file, so it classifies our local
+#        users as system users, resulting in GDM not showing them on
+#        the login screen.  Even worse, when logged in there's no
+#        "switch user" option in the system menu or screensaver lock
+#        screen, becuase it doesn't see any users with id>=1000.  fun.
+#
+# FIXME: So, the other way to fix the problem mentioned in the NOTE
+#        abve is to increase the value of minimum_uid in the pam
+#        config files.  That was actually my original fix, but it's
+#        painful during apt upgrades (prompts for keep old vs take
+#        new), which I was trying to avoid...  Looks like I'll have to
+#        go back to that.
+#
+#        grep minimum_uid /etc/pam.d/*
+#        sed -i 's|pam_krb5.so minimum_uid=1000|pam_krb5.so minimum_uid=1500|' /etc/pam.d/*
+#        grep minimum_uid /etc/pam.d/*
+#
 .build/RUCKUS-DEBOOTSTRAP:
 	$(MAKE) sysroot-clean
 	$(MKDIR_P) $(dir $@)
@@ -500,7 +525,7 @@ PKGS_COMPILATION += r-base-dev
 # - ubuntu-server
 # - update-manager-core update-notifier-common
 #
-# NOTE: utils to play with: kexec htop run-one zerofree
+# NOTE: utils to play with: kexec htop run-one zerofree screen
 #
 PKGS_ES =
 PKGS_ES += bc btrfs-progs cpio cryptsetup cryptsetup-bin curl
@@ -567,6 +592,8 @@ PKGS_ES += manpages
 #        mess with iptables
 #
 # PKGS_ES += nftables iptables-nftables-compat
+#
+
 
 # compilation toolchain and additional development tools and libraries (~1.3G)
 #
@@ -952,6 +979,8 @@ PKGS_VMM += libgl1-amber-dri
 #
 # FIXME: audit services
 #
+#        enable xen-init-dom0 xen-qemu-dom0-disk-backend en-watchdog xenconsoled xenstored
+#
 .build/RUCKUS-VMM-FINAL: .build/RUCKUS-VMM-APT
 	$(MAKE) sysroot-mount-vfs
 	rm -rfv sysroot/tmp/*
@@ -993,9 +1022,13 @@ PKGS_WORKSTATION += ubuntu-desktop
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
 PKGS_WORKSTATION += kernel-builder
 PKGS_WORKSTATION += gcc-multilib g++-multilib gfortran-multilib
+PKGS_WORKSTATION += python3-pip
+PKGS_WORKSTATION += php php-xml
+PKGS_WORKSTATION += default-jdk
 # GIS stuff
 PKGS_WORKSTATION += gmt gmt-dcw gmt-gshhg proj-bin
 PKGS_WORKSTATION += mbsystem
+PKGS_WORKSTATION += python3-geopandas
 # everything else we want
 PKGS_WORKSTATION += gimp gimp-help-en gimp-data-extras gsfonts libbluray-bdj mesa-opencl-icd libvdpau-va-gl1
 PKGS_WORKSTATION += groff ghostscript imagemagick libpaper1 netpbm psutils
@@ -1009,13 +1042,14 @@ PKGS_WORKSTATION += mesa-vulkan-drivers
 PKGS_WORKSTATION += wireshark gkrellm gitk git-gui
 PKGS_WORKSTATION += vlc
 PKGS_WORKSTATION += gnome-tweaks rdesktop
-PKGS_WORKSTATION += emacs-gtk # replaces emacs-nox
-PKGS_WORKSTATION += wine-devel # upstream ppa # FIXME: this causes upgrade to fail... once?
+PKGS_WORKSTATION += emacs-gtk emacs # replaces emacs-nox
+PKGS_WORKSTATION += wine-devel # upstream ppa # FIXME: this sometimes has upgrade dependency problems with wine-devel-amd64 and wine-devel-i386
 PKGS_WORKSTATION += qgis # upstream-ppa
 PKGS_WORKSTATION += openshot-qt # libopenshot libopenshot-audio # upstream ppa
 
 PKGS_WORKSTATION_REMOVE =
 PKGS_WORKSTATION_REMOVE += update-manager update-notifier
+PKGS_WORKSTATION_REMOVE += gnome-initial-setup
 
 .build/RUCKUS-WORKSTATION-OVL:
 	$(MAKE) sysroot-clean
@@ -1041,6 +1075,43 @@ PKGS_WORKSTATION_REMOVE += update-manager update-notifier
 # NOTE: We do --install-recommends for this one!  Bring on the kitchen
 #       sink!
 #
+# FIXME: Is there something we can do to force the inclusion of snap
+#        pacakges?  From a built system, if you apt install firefox or
+#        thunderbird it automatically installs the snap (and any
+#        requirements).
+#
+# FIXME: Also, and probably related, nothing is installing the base
+#        snaps found on a fresh Ubuntu 24.04 install.  Here's what I
+#        see on one of those (actualy this list is from a box that
+#        went focal->jammy->noble so might have extra cruft):
+#
+#        bare			(installed by firefox)
+#        core22			(installed by firefox)
+#        firefox		(definately need this)
+#        firmware-updater
+#        gnome-42-2204		(installed by firefox)
+#        gtk-common-themes	(installed by firefox)
+#        snap-store
+#        snapd			(installed by firefox)
+#        snapd-desktop-integration
+#
+#        the noble install disk also had these installed:
+#
+#        ubuntu-desktop-bootstrap
+#
+#        Iteresting... I thought thunderbird was a part of
+#        ubuntu-desktop, but it's not installed after a default
+#        installation.  Oooh, it *is* a part of ubuntu-desktop, but
+#        the default package list during graphical installation
+#        doesn't install ubuntu-desktop.  It also doesn't installe
+#        libreoffice, file-roller, gnome-calendar, gnome-snapshot,
+#        gstreamer, remmina, rhythmbox, shotwell, totem, ure, or
+#        xorriso.
+#
+#        The only additional snap installed by installing
+#        ubuntu-desktop was thunderbird
+#
+
 .build/RUCKUS-WORKSTATION-APT: .build/RUCKUS-WORKSTATION-ARCH
 	$(MAKE) sysroot-mount-vfs
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends $(PKGS_WORKSTATION)
