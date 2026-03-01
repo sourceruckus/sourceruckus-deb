@@ -273,6 +273,7 @@ PKGS_COMPILATION += autoconf automake autopoint m4 libtool gettext pkg-config bi
 PKGS_COMPILATION += cmake meson ccache bin86 gdb gperf help2man markdown nasm texinfo xsltproc
 PKGS_COMPILATION += yajl-tools
 PKGS_COMPILATION += dwarves # needed by kernel CONFIG_DEBUG_INFO_BTF
+PKGS_COMPILATION += rdfind # needed by linux-firmware makefile
 # add these in for ruckusrd subproject deps
 PKGS_COMPILATION += libkmod-dev libblkid-dev # for eudev
 PKGS_COMPILATION += libaio-dev # for lvm2
