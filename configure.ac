@@ -114,7 +114,7 @@ AC_SUBST(IMG_LIST, $img_list)
 #
 KERNEL_FILES=$(echo $(realpath /boot/*6.12.y* /scrap/ruckusrd/src/initrd-6.12*.img))
 SYSLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/efi64/*))
-ISOLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/{isolinux.bin,{ldlinux,libcom32,libutil,menu,vesamenu,chain}.c32}))
+ISOLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/{isolinux.bin,{ldlinux,libcom32,libmenu,libutil,menu,vesamenu,chain}.c32}))
 ISOHYBRID=/scrap/ruckusrd/subprojects/syslinux/FOO/usr/bin/isohybrid
 FW_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/fw.sqsh))
 SQSH_FILES=$(echo $(realpath /mnt/sqsh_layerdev/noble/*.sqsh))

@@ -1198,10 +1198,12 @@ installer-iso/.DONE: installer-common/.DONE
 	mkdir -p installer-iso/isolinux
 	ln -vs $(ISOLINUX_FILES) installer-iso/isolinux/
 	cp -v syslinux.cfg installer-iso/isolinux/isolinux.cfg
+	cp -v sourceruckus*.png installer-iso/isolinux/
 	mkdir -p installer-iso/EFI/boot
 	ln -vs $(SYSLINUX_FILES) installer-iso/EFI/boot/
 	mv -v installer-iso/EFI/boot/syslinux.efi installer-iso/EFI/boot/bootx64.efi
 	cp -v syslinux.cfg installer-iso/EFI/boot/
+	cp -v sourceruckus*.png installer-iso/EFI/boot/
 	touch $@
 
 # FIXME: I can't seen to figure out any way to boot syslinux or
@@ -1247,6 +1249,7 @@ installer-usb/.DONE: installer-common/.DONE
 	ln -vs $(SYSLINUX_FILES) installer-usb/EFI/boot/
 	mv -v installer-usb/EFI/boot/syslinux.efi installer-usb/EFI/boot/bootx64.efi
 	cat syslinux.cfg | sed 's|=sourceruckus|=ruckususb|g' > installer-usb/EFI/boot/syslinux.cfg
+	cp -v sourceruckus*.png installer-usb/EFI/boot/
 	touch $@
 
 # Using dd to write this img file to a flash drive results in a UEFI
@@ -1257,7 +1260,7 @@ installer-usb/.DONE: installer-common/.DONE
 # NOTE: Once dd-ing this onto a flash drive, the kernel will complain
 #       about the partition table not ending at the end of the disk
 #       (assuming your flash drive isn't exactly 12G).  It doesn't
-#       hurt anything, but if you, this warning can be fixed by
+#       hurt anything, but if you care, this warning can be fixed by
 #       running `gdisk /dev/whatever`, going into expert mode, doing
 #       `v`, and following the instructions.
 #
