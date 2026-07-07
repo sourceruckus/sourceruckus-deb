@@ -530,7 +530,7 @@ PKGS_COMPILATION += r-base-dev
 #
 PKGS_ES =
 PKGS_ES += bc btrfs-progs cpio cryptsetup cryptsetup-bin curl
-PKGS_ES += dirmngr dmeventd dosfstools
+PKGS_ES += dirmngr dmeventd dosfstools exfatprogs
 PKGS_ES += ethtool fdisk finalrd fuse3 gawk gdisk gettext-base gir1.2-packagekitglib-1.0 git git-man gnupg
 PKGS_ES += gnupg-l10n gnupg-utils gpg gpg-agent gpg-wks-client gpgconf gpgsm groff-base htop jq keyboxd
 PKGS_ES += kpartx linux-base lshw lvm2
@@ -885,7 +885,7 @@ PKGS_SERVER += $(PKGS_FILESHARING)
 PKGS_SERVER += ruckusrd
 PKGS_SERVER += firmwarenator
 PKGS_SERVER += microcodenator
-PKGS_SERVER += syslinux syslinux-common dosfstools extlinux isolinux syslinux-efi syslinux-utils
+PKGS_SERVER += syslinux syslinux-common extlinux isolinux syslinux-efi syslinux-utils
 PKGS_SERVER += efibootmgr
 PKGS_SERVER += efitools efivar
 PKGS_SERVER += secureboot-db
