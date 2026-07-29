@@ -165,7 +165,7 @@ clean-local: sysroot-clean
 sysroot/etc/apt/sources.list.d/sourceruckus.list:
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://sourceruckus.github.io/ppa/sourceruckus.key | $(CHROOT) tee /etc/apt/keyrings/sourceruckus.asc
-	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/sourceruckus.asc] https://sourceruckus.github.io/ppa noble main" > $@
+	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/sourceruckus.asc] https://sourceruckus.github.io/ppa resolute main" > $@
 
 sysroot/etc/apt/sources.list.d/influxdb.list:
 	$(MAKE) sysroot-mount-vfs
@@ -180,12 +180,12 @@ sysroot/etc/apt/sources.list.d/grafana.list:
 sysroot/etc/apt/sources.list.d/wine.list:
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://dl.winehq.org/wine-builds/winehq.key | $(CHROOT) tee /etc/apt/keyrings/wine.asc
-	echo "deb [signed-by=/etc/apt/keyrings/wine.asc] https://dl.winehq.org/wine-builds/ubuntu noble main" > $@
+	echo "deb [signed-by=/etc/apt/keyrings/wine.asc] https://dl.winehq.org/wine-builds/ubuntu resolute main" > $@
 
 sysroot/etc/apt/sources.list.d/qgis.list:
 	$(MAKE) sysroot-mount-vfs
 	wget -qO- https://download.qgis.org/downloads/qgis-archive-keyring.gpg | $(CHROOT) tee /etc/apt/keyrings/qgis.gpg
-	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/qgis.gpg] https://qgis.org/ubuntu noble main" > $@
+	echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/qgis.gpg] https://qgis.org/ubuntu resolute main" > $@
 
 # FIXME: This is a mess...  unifi requires mongodb >= 3.6.0 but <<
 #        7.1.0.  I can only get an 8.0 ppa for noble, but I think I
@@ -214,7 +214,7 @@ sysroot/etc/apt/sources.list.d/linbit-drbd9.list:
 	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > sysroot/etc/apt/keyrings/linbit.gpg
 	$(CHROOT) gpgconf --kill all
 	rm sysroot/tmp/keybox.gpg
-	echo "deb [signed-by=/etc/apt/keyrings/linbit.gpg] http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu noble main" > $@
+	echo "deb [signed-by=/etc/apt/keyrings/linbit.gpg] http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu resolute main" > $@
 
 sysroot/etc/apt/sources.list.d/openshot.list:
 	$(MAKE) sysroot-mount-vfs
@@ -225,7 +225,7 @@ sysroot/etc/apt/sources.list.d/openshot.list:
 	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > sysroot/etc/apt/keyrings/openshot.gpg
 	$(CHROOT) gpgconf --kill all
 	rm sysroot/tmp/keybox.gpg
-	echo "deb [signed-by=/etc/apt/keyrings/openshot.gpg] http://ppa.launchpad.net/openshot.developers/ppa/ubuntu noble main" > $@
+	echo "deb [signed-by=/etc/apt/keyrings/openshot.gpg] http://ppa.launchpad.net/openshot.developers/ppa/ubuntu resolute main" > $@
 
 # FIXME: do i really need this one?  way back we got mbsystem from
 #        here, along with other things like gmt, i thought...  but
@@ -245,7 +245,7 @@ sysroot/etc/apt/sources.list.d/ubuntu-gis.list:
 	$(CHROOT) gpg --no-default-keyring --keyring /tmp/keybox.gpg --export > /sysroot/etc/apt/keyrings/ubuntugis.gpg
 	$(CHROOT) gpgconf --kill all
 	rm sysroot/tmp/keybox.gpg
-	echo "deb [signed-by=/etc/apt/keyrings/ubuntugis.gpg] https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu noble main " > $@
+	echo "deb [signed-by=/etc/apt/keyrings/ubuntugis.gpg] https://ppa.launchpadcontent.net/ubuntugis/ppa/ubuntu resolute main " > $@
 
 
 ################################################################################
@@ -463,17 +463,17 @@ PKGS_COMPILATION += r-base-dev
 .build/RUCKUS-DEBOOTSTRAP:
 	$(MAKE) sysroot-clean
 	$(MKDIR_P) $(dir $@)
-	DEBOOTSTRAP_DIR=$(DEBOOTSTRAP_DIR) $(DEBOOTSTRAP) --arch=amd64 noble sysroot http://archive.ubuntu.com/ubuntu/
+	DEBOOTSTRAP_DIR=$(DEBOOTSTRAP_DIR) $(DEBOOTSTRAP) --arch=amd64 resolute sysroot http://archive.ubuntu.com/ubuntu/
 	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
 	touch $@
 
 # after updates, sysroot is ~280M
 .build/RUCKUS-ES-APT-PREP: .build/RUCKUS-DEBOOTSTRAP
 	$(MAKE) sysroot-mount-vfs
-	echo "deb http://archive.ubuntu.com/ubuntu/ noble main restricted universe multiverse" > sysroot/etc/apt/sources.list
-	echo "deb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted universe multiverse" >> sysroot/etc/apt/sources.list
-	echo "deb http://archive.ubuntu.com/ubuntu/ noble-backports main restricted universe multiverse" >> sysroot/etc/apt/sources.list
-	echo "deb http://security.ubuntu.com/ubuntu/ noble-security main restricted universe multiverse" >> sysroot/etc/apt/sources.list
+	echo "deb http://archive.ubuntu.com/ubuntu/ resolute main restricted universe multiverse" > sysroot/etc/apt/sources.list
+	echo "deb http://archive.ubuntu.com/ubuntu/ resolute-updates main restricted universe multiverse" >> sysroot/etc/apt/sources.list
+	echo "deb http://archive.ubuntu.com/ubuntu/ resolute-backports main restricted universe multiverse" >> sysroot/etc/apt/sources.list
+	echo "deb http://security.ubuntu.com/ubuntu/ resolute-security main restricted universe multiverse" >> sysroot/etc/apt/sources.list
 	$(CHROOT) apt update
 	$(CHROOT) apt upgrade -y --autoremove
 	touch $@
