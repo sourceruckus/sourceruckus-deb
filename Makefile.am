@@ -1239,6 +1239,63 @@ sourceruckus.iso: installer-iso/.DONE
 	  -o $@ -m .DONE installer-iso
 	$(ISOHYBRID) --uefi $@
 
+# FIXME: actually, it would be nice to have a BIOS bootable USB as
+#        well... for really old systems
+#
+#        right now these targets create a partitioned block device
+#        image with a single VFAT partition to act as ESP,
+#        sourceruckus installer, and additional storage.
+#
+#        perhaps we could create a small VFAT ESP partition, and a 12G
+#        EXT4 partition w/ /boot for BIOS EXTLINUX files and syslinux
+#        installer stuff (and random storage)?
+#
+#        p1: 1G vfat: ESP boot files only (kernel, initrd, fw.sqsh, EFI/syslinux)
+#
+#        p2: 12G ext4: BIOS boot files (kernel, initrd, fw.sqsh, extlinux/), installer sqsh files (images/)
+#
+#        might not be possible... pretty sure ESP has to be on a GPT
+#        disk, and EXTLINUX needs MS-DOS partition table with boot
+#        flag.  suppposedly, the spec allows for MS-DOS ESP disk, but
+#        not all firmware vendors support it.  that would probably
+#        require multiple "boot" flagged partitions, too, which again
+#        *should* work...
+#
+#        Supposedly, EXTLINUX can boot from GPT disk using gptmbr.bin
+#        instead of plain old mbr.bin... interesting.  Oh, and you
+#        need to mark it legacy bootable like so: `sfdisk --part-attrs
+#        /dev/sda N LegacyBIOSBootable` where N is the partition
+#        number
+#
+#        Perhaps we should do the opposite, then, since BIOS booting
+#        is going to be almost never needed (except with my old
+#        hardware)...?  Create a GPT partition table, then
+#
+#        p1: 1G vfat: ESP boot files (kernel, initrd, fw.sqsh, EFI/syslinux)
+#
+#        p2: 12G ext4: BIOS boot files (kernel, initrd, fw.sqsh, extlinux/), installer sqsh files (images/)
+#
+#        Then mark p2 LegacyBIOSBootable.  The net effect is that the
+#        disk will definately be UFI bootable and will *probably* be
+#        BIOS bootable in off chance your system doesn't support EFI.
+#
+#        I'm sure our rootfs overlay upper_layer being on ext4 will
+#        behave better than it does on vfat, as well.  Traditionally,
+#        I think I made all my bootable usb sticks use a ram
+#        upper_layer to avoid this (and be state-less).
+#
+#        ^^^ crossed the beams there, we don't use overlay when
+#        booting the ruckususb, it's just the kernel, initrd, and
+#        support files.
+#
+#        so in that case, maybe we do a small BIOS boot partition, and
+#        make the rest be a giant vfat/exfat partition for EFI
+#        booting?
+#
+#        p1: 1G ext4: bare minimum BIOS boot files (kernel, initrd, extlinux)
+#
+#        p2: 12G exfat: basically everything we already have
+#
 installer-usb/.DONE: installer-common/.DONE
 	pushd installer-common && \
 	  find -L * -type d -exec mkdir -vp ../installer-usb/{} \; && \
@@ -1248,7 +1305,15 @@ installer-usb/.DONE: installer-common/.DONE
 	ln -vs $(SYSLINUX_FILES) installer-usb/EFI/boot/
 	mv -v installer-usb/EFI/boot/syslinux.efi installer-usb/EFI/boot/bootx64.efi
 	cat syslinux.cfg | sed 's|=sourceruckus|=ruckususb|g' > installer-usb/EFI/boot/syslinux.cfg
-	cp -v sourceruckus*.png installer-usb/EFI/boot/
+	ln -vs sourceruckus*.png installer-usb/EFI/boot/
+	touch $@
+
+installer-usb-boot/.DONE:
+	mkdir -p installer-usb-boot/extlinux
+	ln -vs $(KERNEL_FILES) installer-usb-boot/
+	ln -vs $(EXTLINUX_FILES) installer-usb-boot/extlinux/
+	cat syslinux.cfg | sed -e 's|=sourceruckus|=ruckususb|g' -e 's|menu.c32|vesamenu.c32|' > installer-usb-boot/extlinux/extlinux.conf
+	ln -vs sourceruckus*.png installer-usb-boot/extlinux/
 	touch $@
 
 # Using dd to write this img file to a flash drive results in a UEFI
@@ -1265,15 +1330,23 @@ installer-usb/.DONE: installer-common/.DONE
 #
 # FIXME: copy-paste the actual warning message
 #
-ruckususb.img: installer-usb/.DONE
+# FIXME: check path of extlinux, gptmbr.bin
+#
+ruckususb.img: installer-usb/.DONE installer-usb-boot/.DONE
 	rm -f $@.tmp
-	dd if=/dev/zero of=$@.tmp bs=1M seek=12K count=0
-	echo -e "label:gpt\n,,," | sfdisk $@.tmp
+	dd if=/dev/zero of=$@.tmp bs=1M seek=13K count=0
+	echo -e "label:gpt\nsize=1G,attrs=LegacyBIOSBootable\n," | sfdisk $@.tmp
 	mkdir -p t
 	loop=$$(losetup -f) && \
 	  sudo losetup -P $$loop $@.tmp && \
-	  sudo mkfs.vfat -n ruckususb $${loop}p1 && \
+	  sudo mkfs.ext4 -L ruckususb-boot -O^64bit $${loop}p1 && \
 	  sudo mount $${loop}p1 t && \
+	  sudo cp -vrL --preserve=mode,timestamps installer-usb-boot/* t/ && \
+	  sudo $(EXTLINUX) --install t/extlinux && \
+	  sudo umount t && \
+	  sudo cat $(EXTLINUX_GPTMBR) > $${loop}} && \
+	  sudo mkfs.vfat -n ruckususb $${loop}p2 && \
+	  sudo mount $${loop}p2 t && \
 	  sudo cp -vrL --preserve=mode,timestamps installer-usb/* t/ && \
 	  sudo umount t && \
 	  sudo losetup -d $$loop
