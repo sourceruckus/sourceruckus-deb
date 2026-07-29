@@ -980,10 +980,9 @@ PKGS_VMM += libgl1-amber-dri
 #
 # FIXME: audit services
 #
-#        enable xen-init-dom0 xen-qemu-dom0-disk-backend en-watchdog xenconsoled xenstored
-#
 .build/RUCKUS-VMM-FINAL: .build/RUCKUS-VMM-APT
 	$(MAKE) sysroot-mount-vfs
+	$(CHROOT) systemctl enable xen-init-dom0 xen-qemu-dom0-disk-backend xen-watchdog xenconsoled xenstored
 	rm -rfv sysroot/tmp/*
 	touch $@
 
@@ -1209,7 +1208,7 @@ installer-iso/.DONE: installer-common/.DONE
 # FIXME: I can't seen to figure out any way to boot syslinux or
 #        isolinux via EFI from an ISO... I'm starting to suspect you
 #        just can't (i.e., becuase isolinux only supports BIOS and
-#        syslinux doesn't support IS9660), which is awkward.
+#        syslinux doesn't support ISO9660), which is awkward.
 #
 #        This does create a perfectly usable ISO that boots in BIOS
 #        mode, but then the installer cannot access EFIVARS
@@ -1222,7 +1221,7 @@ installer-iso/.DONE: installer-common/.DONE
 #        https://unix.stackexchange.com/questions/312789/making-a-uefi-bootable-image-with-mkisofs-and-eltorito-boot-efiboot-img
 #
 #        For now, we'll still create the .iso, and include the
-#        systlinux stuff that doesn't work because it doesn't hurt
+#        syslinux stuff that doesn't work because it doesn't hurt
 #        anything and maybe I'm just doing it slightly wrong?  But
 #        we'll also create an installer-usb directory that can just be
 #        copied to a vfat flash disk to be an EFI bootable installer
