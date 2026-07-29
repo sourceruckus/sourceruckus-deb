@@ -112,7 +112,7 @@ AC_SUBST(IMG_LIST, $img_list)
 # FIXME: these should have sane defaults, but i'm setting them to my
 #        specific system during development.
 #
-KERNEL_FILES=$(echo $(realpath /boot/*6.12.y* /scrap/ruckusrd/src/initrd-6.12*.img))
+KERNEL_FILES=$(echo $(realpath /scrap/bootfiles/*6.12.y*))
 SYSLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/efi64/*))
 ISOLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/{isolinux.bin,{ldlinux,libcom32,libmenu,libutil,menu,vesamenu,chain}.c32}))
 EXTLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/*.c32))
@@ -120,7 +120,7 @@ EXTLINUX_GPTMBR=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/s
 EXTLINUX=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/sbin/extlinux))
 ISOHYBRID=/scrap/ruckusrd/subprojects/syslinux/FOO/usr/bin/isohybrid
 FW_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/fw.sqsh))
-SQSH_FILES=$(echo $(realpath /mnt/sqsh_layerdev/noble/*.sqsh))
+SQSH_FILES=$(echo $(realpath /scrap/images/noble/*.sqsh))
 
 # NOTE: This is going to select the LAST specified kernel and initrd
 #       file, in case there are duplicates.  The thinking being, if
@@ -132,6 +132,9 @@ BOOTINITRD=$(basename $(echo $KERNEL_FILES | tr ' ' '\n' | grep initrd | tr '\n'
 
 AC_ARG_VAR(KERNEL_FILES, [Kernel files to include on the installer.])
 AC_ARG_VAR(SYSLINUX_FILES, [SYSLINUX files to include on the installer.])
+AC_ARG_VAR(EXTLINUX_FILES, [EXTLINUX files to include on the installer.])
+AC_ARG_VAR(EXTLINUX_GPTMBR, [Path to gptmbr.bin.])
+AC_ARG_VAR(EXTLINUX, [Path to extlinux.])
 AC_ARG_VAR(ISOLINUX_FILES, [ISOLINUX files to include on the installer.])
 AC_ARG_VAR(ISOHYBRID, [Path to isohybrid.])
 AC_ARG_VAR(FW_FILES, [Firmware files to include on the installer.])
@@ -158,6 +161,9 @@ echo "  $img_list"
 echo
 echo "Kernel Files: $KERNEL_FILES"
 echo "SYSLINUX Files: $SYSLINUX_FILES"
+echo "EXTLINUX Files: $EXTLINUX_FILES"
+echo "gptmbr.bin: $EXTLINUX_GPTMBR"
+echo "extlinux: $EXTLINUX"
 echo "ISOLINUX Files: $ISOLINUX_FILES"
 echo "isohybrid: $ISOHYBRID"
 echo "Firmware Files: $FW_FILES"
