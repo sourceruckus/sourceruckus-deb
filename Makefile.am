@@ -767,7 +767,8 @@ endif
 	$(CHROOT) systemctl disable dnsmasq
 	$(CHROOT) systemctl disable rpc-svcgssd.service
 	$(CHROOT) systemctl mask rpc-svcgssd.service
-	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
+	$(CHROOT) [ -e /sbin/zfs ] && \
+	  systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
 	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
 	  zfs.target
 	rm -rfv sysroot/tmp/*
