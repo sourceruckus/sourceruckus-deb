@@ -267,7 +267,7 @@ PKGS_ZFS += zfs-auto-snapshot # ubuntu ppa, but now using our zfs package
 PKGS_ZFS += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
 PKGS_ZFS += sanoid # ubuntu ppa, but now using our zfs package
 
-# adds about 7.5G, but is pretty critical for building things ;-)
+# adds about 7G, but is pretty critical for building things ;-)
 PKGS_COMPILATION =
 PKGS_COMPILATION += build-essential manpages-dev
 PKGS_COMPILATION += autoconf automake autopoint m4 libtool gettext pkg-config bison flex
@@ -461,7 +461,7 @@ PKGS_COMPILATION += r-base-dev
 # 4. Compare and contrast, try again until you like the list.
 #
 # W/out removing things, ubuntu-server adds ~653M.  All our pruning
-# reduces that to just an additional ~306M, then we add in things we
+# reduces that to just an additional ~302M, then we add in things we
 # actually want.
 #
 # Removed
@@ -588,7 +588,7 @@ PKGS_ES += fdisk
 PKGS_ES += pollinate
 PKGS_ES += run-one
 #
-# additional things we want (~787M last time I checked)
+# additional things we want (~742M last time I checked)
 PKGS_ES += lz4
 PKGS_ES += iptables
 PKGS_ES += network-manager
@@ -648,7 +648,7 @@ PKGS_ES += manpages
 #
 
 
-# compilation toolchain and additional development tools and libraries (~1.3G)
+# compilation toolchain and additional development tools and libraries (~7G)
 #
 # NOTE: We normally leave all these development packages until VMM or
 #       Workstation.  You only need them at this point if this is the first
