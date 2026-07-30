@@ -725,6 +725,8 @@ PKGS_ES_3RDPARTY += telegraf #(135M! didn't realize it was that large)
 PKGS_ES_3RDPARTY += pingenator
 PKGS_ES_3RDPARTY += doit
 PKGS_ES_3RDPARTY += extractenator
+# technically only the zfs package is 3rd-party, the rest is pure ubuntu
+PKGS_ES_3RDPARTY += $(PKGS_ZFS)
 endif
 
 # NOTE: For --enable-devel, we need to empty this list out as well.  We need to
@@ -786,6 +788,9 @@ endif
 	$(CHROOT) systemctl disable dnsmasq
 	$(CHROOT) systemctl disable rpc-svcgssd.service
 	$(CHROOT) systemctl mask rpc-svcgssd.service
+	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
+	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
+	  zfs.target
 	rm -rfv sysroot/tmp/*
 	touch $@
 
@@ -965,7 +970,6 @@ PPAS_SERVER: sysroot/etc/apt/sources.list.d/linbit-drbd9.list
 
 PKGS_SERVER =
 PKGS_SERVER += drbd-utils # upstream ppa
-PKGS_SERVER += $(PKGS_ZFS)
 PKGS_SERVER += $(PKGS_FILESHARING)
 PKGS_SERVER += ruckusrd
 PKGS_SERVER += firmwarenator
@@ -1008,20 +1012,10 @@ PKGS_SERVER += ltfs
 
 # service enable/dislabe, tweaks, etc
 #
-# FIXME: zfs services aren't enabled by default... did i do that on purpose?
-#
 # FIXME: audit services
-#
-# FIXME: we should move zfs to es and enable the services there.  this
-#        wasn't the original plan, but now that i've added
-#        initramsys-installer to ruckusrd, it's using ZFS for the
-#        rootfs (overlayed with sqsh_layers).  So, we kinda need it.
 #
 .build/RUCKUS-SERVER-FINAL: .build/RUCKUS-SERVER-APT
 	$(MAKE) sysroot-mount-vfs
-	$(CHROOT) systemctl enable zfs-import-cache.service zfs-import.target zfs-mount.service \
-	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
-	  zfs.target
 	rm -rfv sysroot/tmp/*
 	touch $@
 
