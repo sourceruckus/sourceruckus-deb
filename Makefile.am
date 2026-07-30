@@ -267,6 +267,7 @@ PKGS_ZFS += zfs-auto-snapshot # ubuntu ppa, but now using our zfs package
 PKGS_ZFS += pv lzop mbuffer libcapture-tiny-perl libconfig-inifiles-perl
 PKGS_ZFS += sanoid # ubuntu ppa, but now using our zfs package
 
+# adds about 7.5G, but is pretty critical for building things ;-)
 PKGS_COMPILATION =
 PKGS_COMPILATION += build-essential manpages-dev
 PKGS_COMPILATION += autoconf automake autopoint m4 libtool gettext pkg-config bison flex
@@ -339,7 +340,7 @@ PKGS_COMPILATION += libxml2-dev libxml2-utils libicu-dev
 #
 PKGS_COMPILATION += python3-dev
 PKGS_COMPILATION += bcc libcurl4-openssl-dev
-PKGS_COMPILATION += transfig tgif
+PKGS_COMPILATION += fig2dev tgif
 PKGS_COMPILATION += texlive-latex-base texlive-latex-recommended
 PKGS_COMPILATION += texlive-fonts-extra texlive-fonts-recommended mercurial
 PKGS_COMPILATION += python3-twisted
@@ -347,15 +348,16 @@ PKGS_COMPILATION += libvncserver-dev libsdl1.2-dev libsdl2-dev libjpeg-dev
 PKGS_COMPILATION += libglib2.0-dev
 PKGS_COMPILATION += libnl-3-dev libnl-cli-3-dev libnl-genl-3-dev libnl-route-3-dev
 PKGS_COMPILATION += libnl-idiag-3-dev libnl-xfrm-3-dev
-PKGS_COMPILATION += iasl ocaml ocaml-findlib
+PKGS_COMPILATION += acpica-tools ocaml ocaml-findlib
 PKGS_COMPILATION += ocamlbuild libx11-dev libyajl-dev
 PKGS_COMPILATION += libpixman-1-dev pandoc figlet
 PKGS_COMPILATION += libc6-dev-i386
-PKGS_COMPILATION += lzma lzma-dev
+PKGS_COMPILATION += lzma
 PKGS_COMPILATION += libsystemd-dev
 # recommends from the xen packages
 PKGS_COMPILATION += gcc-multilib libdecor-0-plugin-1-gtk #default-libdecor-0-plugin-1
-PKGS_COMPILATION += libgl1-amber-dri ocaml-man libtasn1-doc mesa-vulkan-drivers
+#PKGS_COMPILATION += libgl1-amber-dri # FIXME: resolute really didn't like this one...
+PKGS_COMPILATION += ocaml-man libtasn1-doc mesa-vulkan-drivers
 PKGS_COMPILATION += libfindlib-ocaml-dev ledit python3-click lmodern dvisvgm
 PKGS_COMPILATION += cm-super fonts-adf-accanthis fonts-adf-berenis fonts-adf-gillius
 PKGS_COMPILATION += fonts-adf-universalis fonts-cabin fonts-cantarell fonts-clear-sans
@@ -403,12 +405,12 @@ PKGS_COMPILATION += python3-pygments libpipewire-0.3-common
 #
 PKGS_COMPILATION += gmt geotiff-bin gdal-bin libgeotiff-dev
 PKGS_COMPILATION += odbc-postgresql tdsodbc ogdi-bin
-PKGS_COMPILATION += gmt-gshhg libgmt-dev libgdal-grass libgnutls28-dev
-PKGS_COMPILATION += libidn11-dev libkrb5-dev libldap2-dev librtmp-dev libssh2-1-dev
+PKGS_COMPILATION += gmt-gshhg libgmt-dev libgdal-plugin-grass libgnutls28-dev
+PKGS_COMPILATION += libidn-dev libkrb5-dev libldap2-dev librtmp-dev libssh2-1-dev
 PKGS_COMPILATION += netcdf-bin libfftw3-bin libfftw3-dev # libfftw3-3 # not in noble?
 PKGS_COMPILATION += libfftw3-long3 libfftw3-quad3 libfftw3-double3 libfftw3-mpi-dev
 PKGS_COMPILATION += libfftw3-mpi3 libfftw3-single3 libproj-dev proj-bin
-PKGS_COMPILATION += libhdf4-alt-dev hdf4-tools
+PKGS_COMPILATION += libhdf4-dev hdf4-tools
 PKGS_COMPILATION += grass-dev grass-gui e00compr avce00 gnuplot gpsbabel
 PKGS_COMPILATION += gpstrans python3-rpy2 python3-termcolor grass krb5-k5tls
 PKGS_COMPILATION += libmpfr-dev gnutls-bin libhwloc-contrib-plugins idn
@@ -426,7 +428,7 @@ PKGS_COMPILATION += r-base-dev
 # for srv-router, srv-net, srv-auth.
 #
 
-# stage1 - 211M
+# stage1 - 220M
 #
 # NOTE: We change UID_MIN and GID_MIN to 500 in /etc/login.defs
 #       accross-the-board to differentiate local users from krb5 users.
@@ -467,7 +469,7 @@ PKGS_COMPILATION += r-base-dev
 	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
 	touch $@
 
-# after updates, sysroot is ~280M
+# after updates, sysroot is ~293M
 .build/RUCKUS-ES-APT-PREP: .build/RUCKUS-DEBOOTSTRAP
 	$(MAKE) sysroot-mount-vfs
 	echo "deb http://archive.ubuntu.com/ubuntu/ resolute main restricted universe multiverse" > sysroot/etc/apt/sources.list
@@ -485,14 +487,14 @@ PKGS_COMPILATION += r-base-dev
 # stuff we don't want, and adding some stuff we do.  The resulting
 # image should be tiny and awesome.
 #
-# 1. apt install ubuntu-server [n]
+# 1. apt-get install ubuntu-server [n]
 # 2. Review apps (skip over libs and python mods, remove initramfs
 #    stuff, remove vm/cloud stuff).
 # 3. apt install --no-install-recommends $PKGS_ES [n]
 # 4. Compare and contrast, try again until you like the list.
 #
-# W/out removing things, ubuntu-server adds ~420M.  All our pruning
-# reduces that to just an additional ~240M, then we add in things we
+# W/out removing things, ubuntu-server adds ~653M.  All our pruning
+# reduces that to just an additional ~306M, then we add in things we
 # actually want.
 #
 # Removed
@@ -500,10 +502,12 @@ PKGS_COMPILATION += r-base-dev
 # - apport apport-*
 # - appstream
 # - bcache-tools
+# - bolt (installed in es-server)
 # - busybox-initramfs
 # - byobu
 # - cloud-*
 # - cryptsetup-initramfs
+# - dmidecode (installed in es-server)
 # - dracut-*
 # - fonts-ubuntu-console
 # - fwupd fwupd-signed
@@ -512,24 +516,33 @@ PKGS_COMPILATION += r-base-dev
 # - landscape-common
 # - lxd-*
 # - multipath-tools (pulled in initramfs stuff)
+# - open-iscsi (installed in es-server)
 # - open-vm-tools
 # - overlayroot
 # - pastebinit
 # - plymouth plymouth-*
-# - screen
 # - sbsigntool secureboot-db
 # - sg3-utils sg3-utils-udev (pulled in initramfs stuff)
 # - snapd
+# - sos
 # - sosreport
 # - tmux
 # - tpm-udev
+# - udisks2 (installed in es-server)
 # - ubuntu-server
 # - update-manager-core update-notifier-common
 #
-# NOTE: utils to play with: kexec htop run-one zerofree screen
+# NOTE: noble utils to play with: htop zerofree screen
+#
+# NOTE: resolute utils to play with: 3cpio
 #
 PKGS_ES =
+PKGS_ES += 3cpio # new in resolute, replaces cpio (but not drop-in replacement)
+PKGS_ES += bash-completion
 PKGS_ES += bc
+PKGS_ES += binutils
+PKGS_ES += binutils-common
+PKGS_ES += binutils-x86-64-linux-gnu
 PKGS_ES += btrfs-progs
 PKGS_ES += cpio
 PKGS_ES += cryptsetup
@@ -539,12 +552,9 @@ PKGS_ES += dirmngr
 PKGS_ES += dmeventd
 PKGS_ES += dosfstools
 PKGS_ES += exfatprogs
-PKGS_ES += ethtool
-PKGS_ES += fdisk
 PKGS_ES += finalrd
 PKGS_ES += fuse3
 PKGS_ES += gawk
-PKGS_ES += gdisk
 PKGS_ES += gettext-base
 PKGS_ES += gir1.2-packagekitglib-1.0
 PKGS_ES += git
@@ -557,13 +567,12 @@ PKGS_ES += gpg-agent
 PKGS_ES += gpg-wks-client
 PKGS_ES += gpgconf
 PKGS_ES += gpgsm
-PKGS_ES += groff-base
 PKGS_ES += htop
 PKGS_ES += jq
-PKGS_ES += keyboxd
 PKGS_ES += kpartx
 PKGS_ES += linux-base
 PKGS_ES += lshw
+PKGS_ES += lsof
 PKGS_ES += lvm2
 PKGS_ES += mdadm
 PKGS_ES += modemmanager
@@ -572,18 +581,16 @@ PKGS_ES += needrestart
 PKGS_ES += ntfs-3g
 PKGS_ES += openssh-client
 PKGS_ES += packagekit
-PKGS_ES += packagekit-tools
 PKGS_ES += parted
 PKGS_ES += patch
 PKGS_ES += pci.ids
 PKGS_ES += pciutils
 PKGS_ES += perl
-PKGS_ES += perl-modules-5.38
+PKGS_ES += perl-modules-5.40
 PKGS_ES += pinentry-curses
 PKGS_ES += polkitd
-PKGS_ES += pollinate
 PKGS_ES += publicsuffix
-PKGS_ES += run-one
+PKGS_ES += screen # previously removed
 PKGS_ES += sgml-base
 PKGS_ES += software-properties-common
 PKGS_ES += squashfs-tools
@@ -595,6 +602,7 @@ PKGS_ES += unattended-upgrades
 PKGS_ES += usb-modeswitch
 PKGS_ES += usb-modeswitch-data
 PKGS_ES += usb.ids
+PKGS_ES += util-linux-extra # new in resolute
 PKGS_ES += vim
 PKGS_ES += vim-runtime
 PKGS_ES += xauth
@@ -605,13 +613,24 @@ PKGS_ES += zerofree
 PKGS_ES += zstd
 # and that's all we want from ubuntu-server
 #
-# additional things we want (~730M last time I checked)
+# things that used to be in ubuntu-server that we still want (additional ~900K)
+PKGS_ES += ethtool
+PKGS_ES += fdisk
+#PKGS_ES += gdisk # maybe?
+#PKGS_ES += groff-base # maybe?
+PKGS_ES += pollinate
+PKGS_ES += run-one
+#
+# additional things we want (~787M last time I checked)
 PKGS_ES += lz4
 PKGS_ES += iptables
 PKGS_ES += network-manager
 PKGS_ES += iptables-persistent #(yes for saving rules, dpkg-reconfigure later?)
 PKGS_ES += tshark #(yes for non-root capture, dpkg-reconfigure wireshark-common later?)
-PKGS_ES += openssh-server ntp sntp ncurses-term
+PKGS_ES += openssh-server
+#PKGS_ES += ntp sntp # replaced in resolute by ntpsec and ntpsec-ntpdig
+PKGS_ES += ntpsec ntpsec-ntpdig
+PKGS_ES += ncurses-term
 PKGS_ES += dnsmasq
 PKGS_ES += cifs-utils smbclient
 PKGS_ES += keyutils winbind libnss-winbind libpam-winbind
@@ -628,15 +647,16 @@ PKGS_ES += emacs-nox emacs-common-non-dfsg
 PKGS_ES += aspell aspell-en
 PKGS_ES += autofs nfs-common
 PKGS_ES += ftp ncftp
+# FIXME: is this wireguard comment still relevant?
 PKGS_ES += wireguard-tools #(--no-install-recommends to avoid grub junk - or apt-mark hold wireguard-dkms wireguard-modules)
 PKGS_ES += logwatch libdate-manip-perl
-PKGS_ES += lsof
 PKGS_ES += rsync
 PKGS_ES += info
 PKGS_ES += traceroute
 PKGS_ES += tree
 PKGS_ES += zip unzip unrar
 PKGS_ES += xattr
+# FIXME: krb5 didn't ask during initial resolute install?  had to dpkg-reconfigure -plow krb5-config
 PKGS_ES += krb5-user #(specified default realm (SOURCERUCKUS.ORG), server (krb5), and pw server (krb5pw), use dpkg-reconfigure later?)
 PKGS_ES += libpam-krb5
 PKGS_ES += mosh
