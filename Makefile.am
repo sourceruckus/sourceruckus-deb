@@ -430,43 +430,10 @@ PKGS_COMPILATION += r-base-dev
 
 # stage1 - 220M
 #
-# NOTE: We change UID_MIN and GID_MIN to 500 in /etc/login.defs
-#       accross-the-board to differentiate local users from krb5 users.
-#       Otherwise, if krb server is unreachable, it takes a few minutes to
-#       authenticate local users.  We have to make this change as early as
-#       possible to keep apt install from adding users with uid higher than 500
-#       (i.e., if we wait until "finalization" of es.sqsh, it's too late -
-#       we've got gkrellmd and telegraf as 999 and 998).
-#
-# FIXME: bugger, this isn't working quite right with noble.
-#        localadmin is 999 (that's fine), but systemd-network is 998,
-#        systemd-timesync is 996, systemd-resolve is 991, polkitd is
-#        990, fwupd-refresh is 989, systemd-oom is 988,
-#        gnome-remote-desktop is 987. Those are all system users that
-#        should have been <500.
-#
-# FIXME: accountservice ignores this file, so it classifies our local
-#        users as system users, resulting in GDM not showing them on
-#        the login screen.  Even worse, when logged in there's no
-#        "switch user" option in the system menu or screensaver lock
-#        screen, becuase it doesn't see any users with id>=1000.  fun.
-#
-# FIXME: So, the other way to fix the problem mentioned in the NOTE
-#        abve is to increase the value of minimum_uid in the pam
-#        config files.  That was actually my original fix, but it's
-#        painful during apt upgrades (prompts for keep old vs take
-#        new), which I was trying to avoid...  Looks like I'll have to
-#        go back to that.
-#
-#        grep minimum_uid /etc/pam.d/*
-#        sed -i 's|pam_krb5.so minimum_uid=1000|pam_krb5.so minimum_uid=1500|' /etc/pam.d/*
-#        grep minimum_uid /etc/pam.d/*
-#
 .build/RUCKUS-DEBOOTSTRAP:
 	$(MAKE) sysroot-clean
 	$(MKDIR_P) $(dir $@)
 	DEBOOTSTRAP_DIR=$(DEBOOTSTRAP_DIR) $(DEBOOTSTRAP) --arch=amd64 resolute sysroot http://archive.ubuntu.com/ubuntu/
-	sed -i 's|_MIN\([[:space:]]*\)1000|_MIN\1500|' sysroot/etc/login.defs
 	touch $@
 
 # after updates, sysroot is ~293M
@@ -771,6 +738,18 @@ endif
 #       joining an AD domain, even if you don't have nfs-kernel-server
 #       installed, this service autostarts and fails.
 #
+# NOTE: We increase the minimum user id for PAM's krb5 module here to
+#       better differentiate between local and domain users.  This
+#       way, the krb5 lookups don't happen for users defined locally
+#       (i.e., local users OVERRIDE domain ones) and more importantly,
+#       if the krb server is unreachable we won't induce an
+#       agonizingly long timeout when trying to login to a local
+#       account (usally to fix the krb5 problem).
+#
+#       We used to do this via /etc/login.defs to avoid apt upgrade
+#       "modified files" questions, but that file isn't consistently
+#       used anymore (e.g., accountservice ignores it).
+#
 # FIXME: should really move awesome-powers to /opt
 #
 .build/RUCKUS-ES-FINAL: .build/RUCKUS-ES-3RDPARTY
@@ -792,6 +771,10 @@ endif
 	  zfs-share.service zfs-volume-wait.service zfs-volumes.target zfs-zed.service \
 	  zfs.target
 	rm -rfv sysroot/tmp/*
+	grep minimum_uid sysroot/etc/pam.d/*
+	sed -i 's|pam_krb5.so minimum_uid=1000|pam_krb5.so minimum_uid=1500|' sysroot/etc/pam.d/*
+	grep minimum_uid sysroot/etc/pam.d/*
+
 	touch $@
 
 
