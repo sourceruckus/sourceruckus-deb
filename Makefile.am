@@ -169,7 +169,7 @@ sysroot/etc/apt/sources.list.d/sourceruckus.list:
 
 sysroot/etc/apt/sources.list.d/influxdb.list:
 	$(MAKE) sysroot-mount-vfs
-	wget -qO- https://repos.influxdata.com/influxdata-archive_compat.key | $(CHROOT) tee /etc/apt/keyrings/influxdb.asc
+	wget -qO- https://repos.influxdata.com/influxdata-archive.key | $(CHROOT) tee /etc/apt/keyrings/influxdb.asc
 	echo "deb [signed-by=/etc/apt/keyrings/influxdb.asc] https://repos.influxdata.com/debian stable main" > $@
 
 sysroot/etc/apt/sources.list.d/grafana.list:
@@ -354,6 +354,8 @@ PKGS_COMPILATION += libpixman-1-dev pandoc figlet
 PKGS_COMPILATION += libc6-dev-i386
 PKGS_COMPILATION += lzma
 PKGS_COMPILATION += libsystemd-dev
+PKGS_COMPILATION += python3-pip python3-venv
+PKGS_COMPILATION += gcc-13 # had to downgrade gcc to compile xen... :-/
 # recommends from the xen packages
 PKGS_COMPILATION += gcc-multilib libdecor-0-plugin-1-gtk #default-libdecor-0-plugin-1
 #PKGS_COMPILATION += libgl1-amber-dri # FIXME: resolute really didn't like this one...
@@ -384,6 +386,7 @@ PKGS_COMPILATION += libfile-remove-perl libgfortran5 libhash-ordered-perl
 PKGS_COMPILATION += libmail-box-perl libmail-message-perl libmail-transport-perl
 PKGS_COMPILATION += libmime-types-perl libobject-realize-later-perl
 PKGS_COMPILATION += libsub-exporter-progressive-perl libuser-identity-perl xaw3dg
+PKGS_COMPILATION += libdraco-dev
 # to build mbsystem (xorg stuff)
 #
 # NOTE: Some of these may not technically be needed for building mbsystem,
@@ -906,7 +909,9 @@ PKGS_ESWEB += grafana # upstream ppa
 ### You can start grafana-server by executing
 # sudo /bin/systemctl start grafana-server
 #
-PKGS_ESWEB += unifi # upstream ppa, also pulls in old version of mongodb
+# FIXME: wtf... the 26.04 unifi ppa is empty?  commenting this out for now.
+#
+#PKGS_ESWEB += unifi # upstream ppa, also pulls in old version of mongodb
 
 .build/RUCKUS-ESWEB-OVL:
 	$(MAKE) sysroot-clean
@@ -1024,7 +1029,7 @@ PKGS_VMM += default-libdecor-0-plugin-1
 PKGS_VMM += librsvg2-common os-prober at-spi2-core libgdk-pixbuf2.0-bin libgtk-3-bin
 PKGS_VMM += ipxe-qemu-256k-compat-efi-roms qemu-system-gui qemu-system-modules-spice
 PKGS_VMM += qemu-system-modules-opengl qemu-block-extra cpu-checker
-PKGS_VMM += libgl1-amber-dri
+#PKGS_VMM += libgl1-amber-dri # resolute really didn't like this one
 
 .build/RUCKUS-VMM-OVL:
 	$(MAKE) sysroot-clean
@@ -1085,7 +1090,6 @@ PKGS_WORKSTATION += ubuntu-desktop
 PKGS_WORKSTATION += $(PKGS_COMPILATION)
 PKGS_WORKSTATION += kernel-builder
 PKGS_WORKSTATION += gcc-multilib g++-multilib gfortran-multilib
-PKGS_WORKSTATION += python3-pip
 PKGS_WORKSTATION += php php-xml
 PKGS_WORKSTATION += default-jdk
 # GIS stuff
@@ -1093,14 +1097,15 @@ PKGS_WORKSTATION += gmt gmt-dcw gmt-gshhg proj-bin
 PKGS_WORKSTATION += mbsystem
 PKGS_WORKSTATION += python3-geopandas
 # everything else we want
-PKGS_WORKSTATION += gimp gimp-help-en gimp-data-extras gsfonts libbluray-bdj mesa-opencl-icd libvdpau-va-gl1
-PKGS_WORKSTATION += groff ghostscript imagemagick libpaper1 netpbm psutils
+PKGS_WORKSTATION += gimp gimp-help-en gimp-data-extras gsfonts libbluray-bdj mesa-opencl-icd
+PKGS_WORKSTATION += libvdpau-va-gl1 libvdpau1 vdpauinfo
+PKGS_WORKSTATION += groff ghostscript imagemagick libpaper2 netpbm psutils
 PKGS_WORKSTATION += ffmpeg
 PKGS_WORKSTATION += gnuplot
 PKGS_WORKSTATION += inkscape xfig dia
 PKGS_WORKSTATION += audacity audacious
 PKGS_WORKSTATION += opus-tools librsvg2-bin speex vorbis-tools sox
-PKGS_WORKSTATION += va-driver-all vdpau-driver-all mesa-utils
+PKGS_WORKSTATION += va-driver-all mesa-utils
 PKGS_WORKSTATION += mesa-vulkan-drivers
 PKGS_WORKSTATION += wireshark gkrellm gitk git-gui
 PKGS_WORKSTATION += vlc
@@ -1174,6 +1179,95 @@ PKGS_WORKSTATION_REMOVE += gnome-initial-setup
 #        The only additional snap installed by installing
 #        ubuntu-desktop was thunderbird
 #
+# FIXME: looking at snaps intstalled by default for 26.04 now.  on the
+#        install media, the casper/minimal.en.manifest.full file has
+#        this at the end (I sorted it alphabetically for comparison's
+#        sake)... I bet that's the list of snaps that get installed.
+#        Let's verify that, shall we?
+#
+#        snap:bare       stable  5
+#        snap:core24     stable  1587
+#        snap:desktop-security-center    1/stable/ubuntu-26.04   150
+#        snap:firefox    stable/ubuntu-26.04     8107
+#        snap:firmware-updater   1/stable/ubuntu-26.04   226
+#        snap:gnome-46-2404      stable/ubuntu-26.04     153
+#        snap:gtk-common-themes  stable/ubuntu-26.04     1535
+#        snap:mesa-2404  stable/ubuntu-26.04     1165
+#        snap:prompting-client   1/stable/ubuntu-26.04   204
+#        snap:snap-store 2/stable/ubuntu-26.04   1367
+#        snap:snapd      stable  26865
+#        snap:snapd-desktop-integration  stable/ubuntu-26.04     361
+#
+#        oh and look what else I found in casper/minimal.squashfs
+#
+# drwxr-xr-x root/root                75 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed
+# drwxr-xr-x root/root               458 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/assertions
+# -rw-r--r-- root/root              1666 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/assertions/account
+# -rw-r--r-- root/root              2439 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/assertions/account-key
+# -rw-r--r-- root/root              4521 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/assertions/bare_5.assert
+# -rw-r--r-- root/root              4556 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/assertions/core24_1587.assert
+# -rw-r--r-- root/root              4853 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/assertions/desktop-security-center_150.assert
+# -rw-r--r-- root/root              7926 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/assertions/firefox_8107.assert
+# -rw-r--r-- root/root              4976 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/assertions/firmware-updater_226.assert
+# -rw-r--r-- root/root              4743 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/assertions/gnome-46-2404_153.assert
+# -rw-r--r-- root/root              5195 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/assertions/gtk-common-themes_1535.assert
+# -rw-r--r-- root/root              4735 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/assertions/mesa-2404_1165.assert
+# -rw-r--r-- root/root               957 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/assertions/model
+# -rw-r--r-- root/root              4647 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/assertions/prompting-client_204.assert
+# -rw-r--r-- root/root              5583 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/assertions/snap-store_1367.assert
+# -rw-r--r-- root/root              5195 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/assertions/snapd-desktop-integration_361.assert
+# -rw-r--r-- root/root              4556 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/assertions/snapd_26865.assert
+# -rw-r--r-- root/root              1099 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/seed.yaml
+# drwxr-xr-x root/root               423 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/snaps
+# -rw------- root/root              4096 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/snaps/bare_5.snap
+# -rw------- root/root          70094848 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/snaps/core24_1587.snap
+# -rw------- root/root          20602880 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/snaps/desktop-security-center_150.snap
+# -rw------- root/root         286994432 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/snaps/firefox_8107.snap
+# -rw------- root/root          17301504 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/snaps/firmware-updater_226.snap
+# -rw------- root/root         635518976 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/snaps/gnome-46-2404_153.snap
+# -rw------- root/root          96141312 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/snaps/gtk-common-themes_1535.snap
+# -rw------- root/root         414167040 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/snaps/mesa-2404_1165.snap
+# -rw------- root/root          19738624 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/snaps/prompting-client_204.snap
+# -rw------- root/root          16449536 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/snaps/snap-store_1367.snap
+# -rw------- root/root            593920 2026-04-23 11:21 squashfs-root/var/lib/snapd/seed/snaps/snapd-desktop-integration_361.snap
+# -rw------- root/root          51654656 2026-04-23 11:20 squashfs-root/var/lib/snapd/seed/snaps/snapd_26865.snap
+#
+#       So, googling has revealed we can "seed" snapd and that on
+#       first-boot these snaps will get installed (I assume quickly
+#       w/out downloading a mess of stuff).  Links of interest:
+#
+#       https://forum.snapcraft.io/t/seed-new-snap-into-the-image/25301
+#
+#       The question then is: For our image builder, does it make more
+#       sense to 1) snap install these in the crooted environment or
+#       2) seed snapd like the ubuntu installer.
+#
+#       Since there's no easy way to download all these seeded files
+#       from the installer.iso, it might make more sense to just go
+#       with option 1 - chrooted snap install
+#
+#       ok, I cannot do `snap install` in a chrooted environemnt,
+#       because it needs tons of fancy stuff runing that isn't... but
+#       I *can* run snap download and setup the seeding from inside
+#       the crooted environment.
+#
+SNAPS_WORKSTATION =
+SNAPS_WORKSTATION += bare
+SNAPS_WORKSTATION += core24
+SNAPS_WORKSTATION += desktop-security-center
+SNAPS_WORKSTATION += firefox
+SNAPS_WORKSTATION += firmware-updater
+SNAPS_WORKSTATION += gnome-46-2404
+SNAPS_WORKSTATION += gtk-common-themes
+SNAPS_WORKSTATION += mesa-2404
+SNAPS_WORKSTATION += prompting-client
+SNAPS_WORKSTATION += snap-store
+SNAPS_WORKSTATION += snapd
+SNAPS_WORKSTATION += snapd-desktop-integration
+# we add thunderbird because it should have been installed when the
+# dep was installed via apt.
+SNAPS_WORKSTATION += thunderbird
+
 
 .build/RUCKUS-WORKSTATION-APT: .build/RUCKUS-WORKSTATION-ARCH
 	$(MAKE) sysroot-mount-vfs
@@ -1184,6 +1278,34 @@ PKGS_WORKSTATION_REMOVE += gnome-initial-setup
 	$(MAKE) sysroot-mount-vfs
 	cat debconf-config.dat | $(CHROOT) $(APT_REMOVE) $(PKGS_WORKSTATION_REMOVE)
 	touch $@
+
+# FIXME: some of the snaps have channel's other than "stable" on the
+#        official installation media.  For example,
+#        desktop-security-center is 1/stable/ubuntu-26.04, firefox and
+#        a bunch of others are stable/ubuntu-26.04.  What the impact
+#        of me just specifying "stable" for all of them...?
+#
+#        hmm... actually, I'm explicitly downloading from the "stable"
+#        channel so maybe it's fine?
+#
+.build/RUCKUS-WORKSTATION-SNAP: .build/RUCKUS-WORKSTATION-REMOVE
+	$(MAKE) sysroot-mount-vfs
+	mkdir -p sysroot/var/lib/snapd/seed/{assertions,snaps}
+	cp -v snapd-seedfiles/{account,account-key,model} sysroot/var/lib/snapd/seed/assertions
+	echo "snaps:" > sysroot/var/lib/snapd/seed/seed.yaml
+	for name in $(SNAPS_WORKSTATION); do \
+	  $(CHROOT) snap download --target-directory=/var/lib/snapd/seed/snaps \
+	    --channel=stable $$name; \
+	  echo "  -" >> sysroot/var/lib/snapd/seed/seed.yaml; \
+	  echo "    name: $$name" >> sysroot/var/lib/snapd/seed/seed.yaml; \
+	  echo "    channel: stable" >> sysroot/var/lib/snapd/seed/seed.yaml; \
+	  snap=sysroot/var/lib/snapd/seed/snaps/$$name*.snap; \
+	  echo "    file: $$snap" >> sysroot/var/lib/snapd/seed/seed.yaml; \
+	done
+	mv sysroot/var/lib/snapd/seed/snaps/*.assert sysroot/var/lib/snapd/seed/assertions/
+	$(CHROOT) snap prepare-image --classic /var/lib/snapd/seed/assertions/model /var/lib/snapd/seed
+	touch $@
+
 
 sysroot/tmp/google-chrome.deb:
 	wget -qO- https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb > $@
@@ -1213,9 +1335,10 @@ PKGS_WORKSTATION_LOCAL += google-chrome
 PKGS_WORKSTATION_LOCAL += google-earth
 PKGS_WORKSTATION_LOCAL += teamviewer
 PKGS_WORKSTATION_LOCAL += zoom
+PKGS_WORKSTATION_LOCAL += steam
 
 # fetch debs and install locally
-.build/RUCKUS-WORKSTATION-LOCAL: .build/RUCKUS-WORKSTATION-REMOVE
+.build/RUCKUS-WORKSTATION-LOCAL: .build/RUCKUS-WORKSTATION-SNAP
 	$(MAKE) sysroot-mount-vfs
 	$(MAKE) DOWNLOADS_WORKSTATION
 	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends $(patsubst %,/tmp/%.deb,$(PKGS_WORKSTATION_LOCAL))
