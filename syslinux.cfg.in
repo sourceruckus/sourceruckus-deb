@@ -24,7 +24,7 @@ menu color timeout 0 #ffffffff #00000000
 menu color cmdline 0 #ffffffff #00000000
 menu hidden
 menu hiddenrow 5
-menu autoboot "Booting Source Ruckus Noble Installer in # second{,s}..."
+menu autoboot "Booting Source Ruckus Resolute Installer in # second{,s}..."
 
 label ruckusinst
  menu label Source Ruckus Noble Installer
