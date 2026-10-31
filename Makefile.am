@@ -108,6 +108,7 @@ sysroot/dev/block:
 sysroot-mount-vfs: sysroot/proc/self sysroot/sys/block sysroot/dev/block #sysroot/dev/pts
 
 sysroot-umount-vfs:
+	fuser -km sysroot || echo nothing to kill
 	umount -R sysroot/{proc,sys,dev} || echo already unmounted
 
 sqsh_layer-es: es.sqsh
@@ -129,14 +130,6 @@ sqsh_layer-vmm: vmm.sqsh
 upper_layer:
 	$(MKDIR_P) $@
 
-# FIXME: i don't remember exactly why i do a umount -l here... and
-#       it's causing problems occasionally with sysroot (when it's
-#       overlay).  manually unmounting and trying again seems to work,
-#       so i'm wonderingy if i should just drop the -l.
-#
-#       looks like i can't umount sysroot sometimes because gpg-agent
-#       is still running?
-#
 sysroot-clean:
 	$(MAKE) sysroot-umount-vfs
 	umount sysroot || echo not mounted
