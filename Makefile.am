@@ -35,6 +35,7 @@ DEBOOTSTRAP=$(DEBOOTSTRAP_DIR)/debootstrap
 #       So we still also supply DEBIAN_FRONTEND=noninteractive.
 #
 APT_INSTALL=DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends
+APT_INSTALL_RECOMMENDS=DEBIAN_FRONTEND=noninteractive apt install -y --install-recommends
 APT_REMOVE=DEBIAN_FRONTEND=noninteractive apt remove -y --autoremove --purge
 APT_UPGRADE=DEBIAN_FRONTEND=noninteractive apt upgrade -y --no-install-recommends --autoremove
 #
@@ -1101,9 +1102,13 @@ PKGS_WORKSTATION_REMOVE += gnome-initial-setup
 
 # apt install
 #
+# NOTE: We do --install-recommends for this one!  Bring on the kitchen
+#       sink!  (well, hopefully a smaller kitchen sink than for
+#       desktop.sqsh)
+#
 .build/RUCKUS-WORKSTATION-APT: .build/RUCKUS-WORKSTATION-PPAS
 	$(MAKE) sysroot-mount-vfs
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) $(PKGS_WORKSTATION)
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL_RECOMMENDS) $(PKGS_WORKSTATION)
 	touch $@
 
 .build/RUCKUS-WORKSTATION-REMOVE: .build/RUCKUS-WORKSTATION-APT
@@ -1189,7 +1194,7 @@ PKGS_WORKSTATION_LOCAL += zoom
 .build/RUCKUS-WORKSTATION-LOCAL: .build/RUCKUS-WORKSTATION-SNAP
 	$(MAKE) sysroot-mount-vfs
 	$(MAKE) DOWNLOADS_WORKSTATION
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends $(patsubst %,/tmp/%.deb,$(PKGS_WORKSTATION_LOCAL))
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL_RECOMMENDS) $(patsubst %,/tmp/%.deb,$(PKGS_WORKSTATION_LOCAL))
 	touch $@
 
 # service enable/disable, tweaks, etc
@@ -1346,7 +1351,7 @@ PKGS_DESKTOP_REMOVE = gnome-initial-setup
 #
 .build/RUCKUS-DESKTOP-APT: .build/RUCKUS-DESKTOP-ARCH
 	$(MAKE) sysroot-mount-vfs
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends $(PKGS_DESKTOP)
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL_RECOMMENDS) $(PKGS_DESKTOP)
 	touch $@
 
 .build/RUCKUS-DESKTOP-REMOVE: .build/RUCKUS-DESKTOP-APT
@@ -1365,7 +1370,7 @@ PKGS_DESKTOP_LOCAL += steam
 .build/RUCKUS-DESKTOP-LOCAL: .build/RUCKUS-DESKTOP-REMOVE
 	$(MAKE) sysroot-mount-vfs
 	$(MAKE) DOWNLOADS_DESKTOP
-	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL) --install-recommends $(patsubst %,/tmp/%.deb,$(PKGS_DESKTOP_LOCAL))
+	cat debconf-config.dat | $(CHROOT) $(APT_INSTALL_RECOMMENDS) $(patsubst %,/tmp/%.deb,$(PKGS_DESKTOP_LOCAL))
 	touch $@
 
 # service enable/disable, tweaks, etc
