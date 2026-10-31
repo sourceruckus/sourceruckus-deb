@@ -1399,9 +1399,9 @@ desktop.sqsh: .build/RUCKUS-DESKTOP-FINAL
 #       no larger than 4G minus 1 byte.  The installer reconstructs
 #       the sliced up files prior to installing them.
 #
-installer-common/.DONE:
+installer-common/.DONE: @IMG_LIST@
 	mkdir -p installer-common/images
-	for x in $(SQSH_FILES); do \
+	for x in $(abspath $(IMG_LIST)); do \
 	  if [ $$(stat -c %s $$x) -ge $$((4*1024*1024*1024)) ]; then \
 	    split -b $$((4*1024*1024*1024-1)) -d --verbose $$x installer-common/images/$$(basename $$x)SPLIT ; \
 	  else \

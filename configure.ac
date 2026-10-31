@@ -125,7 +125,6 @@ EXTLINUX_GPTMBR=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/s
 EXTLINUX=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/sbin/extlinux))
 ISOHYBRID=/scrap/ruckusrd/subprojects/syslinux/FOO/usr/bin/isohybrid
 FW_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/fw.sqsh))
-SQSH_FILES=$(echo $(realpath /scrap/images/resolute/*.sqsh))
 
 # NOTE: This is going to select the LAST specified kernel and initrd
 #       file, in case there are duplicates.  The thinking being, if
@@ -143,7 +142,6 @@ AC_ARG_VAR(EXTLINUX, [Path to extlinux.])
 AC_ARG_VAR(ISOLINUX_FILES, [ISOLINUX files to include on the installer.])
 AC_ARG_VAR(ISOHYBRID, [Path to isohybrid.])
 AC_ARG_VAR(FW_FILES, [Firmware files to include on the installer.])
-AC_ARG_VAR(SQSH_FILES, [Sqsh files to include on the installer.])
 AC_ARG_VAR(BOOTKERNEL, [The kernel file for the installer to boot.])
 AC_ARG_VAR(BOOTINITRD, [The initrd file for the installer to boot.])
 
@@ -172,7 +170,6 @@ echo
 #echo "ISOLINUX Files: $ISOLINUX_FILES"
 #echo "isohybrid: $ISOHYBRID"
 #echo "Firmware Files: $FW_FILES"
-#echo "Sqsh Files: $SQSH_FILES"
 #echo "BOOTKERNEL: $BOOTKERNEL"
 #echo "BOOTINITRD: $BOOTINITRD"
 #echo
