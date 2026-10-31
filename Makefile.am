@@ -1400,11 +1400,17 @@ desktop.sqsh: .build/RUCKUS-DESKTOP-FINAL
 
 # Targets for building bootable installers
 
+
+# NOTE: Max file size in both ISO9660 and vfat (for bootable flash
+#       image) is 4G.  We split .sqsh files larger than 4G into chunks
+#       no larger than 4G minus 1 byte.  The installer reconstructs
+#       the sliced up files prior to installing them.
+#
 installer-common/.DONE:
 	mkdir -p installer-common/images
 	for x in $(SQSH_FILES); do \
 	  if [ $$(stat -c %s $$x) -ge $$((4*1024*1024*1024)) ]; then \
-	    split -b 2G -d --verbose $$x installer-common/images/$$(basename $$x)SPLIT ; \
+	    split -b $$((4*1024*1024*1024-1)) -d --verbose $$x installer-common/images/$$(basename $$x)SPLIT ; \
 	  else \
 	    ln -vs $$x installer-common/images/ ; \
 	  fi \
