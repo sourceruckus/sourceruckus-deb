@@ -107,13 +107,22 @@ sysroot/dev/block:
 #
 sysroot-mount-vfs: sysroot/proc/self sysroot/sys/block sysroot/dev/block #sysroot/dev/pts
 
-sysroot-umount-vfs:
-# FIXME: nooooooooooooooooooooooooo this kills all my compilation jobs
-#        and mosh-server?!  oops
+# NOTE: We keep running into cases where a subprocess of the build
+#       process is still running in the crooted sysroot, so we can't
+#       unmount either sysroot/dev or sysroot.
 #
-#	fuser -km sysroot || echo nothing to kill
-	fuser -m sysroot && ps -f $$(fuser -m sysroot 2>/dev/null) || echo -n
-#	$(CHROOT) fuser -m / && $(CHROOT) ps -f \$$(fuser -m / 2>/dev/null) || echo -n
+#       The most likely culprit is gpg-agent, so we do a chrooted
+#       `gpgconf --kill all` here before trying to unmount things.
+#
+#       The `fuser` calls here are so we can see what *was* running
+#       the next time this problem crops up, because a lot of the time
+#       it's no longer running by the time we notice the build has
+#       failed.
+#
+#       You can't reliably do a `fuser -km sysroot` here, because
+#       sometimes that kills our entire build (and ssh/mosh session).
+#
+sysroot-umount-vfs:
 	$(CHROOT) gpgconf --kill all && sleep 2 || echo -n
 	fuser -m sysroot && ps -f $$(fuser -m sysroot 2>/dev/null) || echo -n
 	umount -R sysroot/{proc,sys,dev} || echo already unmounted
