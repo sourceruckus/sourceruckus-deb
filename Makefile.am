@@ -108,7 +108,14 @@ sysroot/dev/block:
 sysroot-mount-vfs: sysroot/proc/self sysroot/sys/block sysroot/dev/block #sysroot/dev/pts
 
 sysroot-umount-vfs:
-	fuser -km sysroot || echo nothing to kill
+# FIXME: nooooooooooooooooooooooooo this kills all my compilation jobs
+#        and mosh-server?!  oops
+#
+#	fuser -km sysroot || echo nothing to kill
+	fuser -m sysroot && ps -f $$(fuser -m sysroot 2>/dev/null) || echo -n
+#	$(CHROOT) fuser -m / && $(CHROOT) ps -f \$$(fuser -m / 2>/dev/null) || echo -n
+	$(CHROOT) gpgconf --kill all && sleep 2 || echo -n
+	fuser -m sysroot && ps -f $$(fuser -m sysroot 2>/dev/null) || echo -n
 	umount -R sysroot/{proc,sys,dev} || echo already unmounted
 
 sqsh_layer-es: es.sqsh
