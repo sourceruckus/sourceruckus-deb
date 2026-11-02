@@ -874,24 +874,24 @@ PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin pocketsphinx-en-us librsvg
 
 # prepare an overlay mount on sysroot
 #
-# FIXME: crap, upper_layer can't be ZFS?
+# NOTE: The upper_layer can't be an Overlay.  I've been bitten by this
+#       a few times now, so noting it.  If the build tree resides on
+#       the rootfs of one of our Source Ruckus systems, it'll be on an
+#       overlay mount, and then when you go to use a subdir as a
+#       temporary upper_layer during the build, you get "overlay:
+#       filesystem on upper_layer/upper not supported as upperdir" in
+#       dmesg and a failed mount.
 #
-#        overlay: filesystem on upper_layer/upper not supported as upperdir
+#       I have multiple times now "remembered" that you can't use ZFS
+#       as upper_layer, googled, and verified that Ubuntu 24.04 w/ ZFS
+#       2.2+ is SUPPOSED to work as an upper_layer (i.e., that
+#       problems is fixed and ZFS is good for upper_layer)...  and
+#       then re-remembered the actual problem.
 #
-#        google says Ubuntu 24.04 w/ ZFS 2.2+ will work...  feanor is
-#        24.04 w/ ZFS 2.4.3 (kernel, userland is 2.3.2).  it's running
-#        my 6.18 kernel, so the overlayfs version is whatever was in
-#        6.18.  Ubuntu 24.04 shipped with 6.8 originally, HWE stack
-#        gave it 6.11, 6.17, and 7.0.  Harumpf
-#
-#        worked fine on my ZFS resolutedev vm... what gives?
-#
-#        ooooooh, wait...  on feanor, this is in /scrap , which is
-#        rootfs which IS overlay.  I bet if move it to home (or make
-#        /scrap an additional dataset) this problem will go away...
-#
-#        yes, it did...  I'm leaving this FIXME in here for next
-#        time... I'm pretty sure this has bitten me before.
+#       So, yeah, don't checkout and build in /root, /opt, or /scrap
+#       on one of our systems unless you've created an alternat ZFS
+#       dataset to mount there (/home is already created as a dataset
+#       by the installer, so that's fine).
 #
 .build/RUCKUS-ESFILE-OVL:
 	$(MAKE) sysroot-clean

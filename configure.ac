@@ -9,7 +9,10 @@ m4_ifnblank(sr_devtag,
 
 # FIXME: can i get a timestamp in here to append to sqsh images?
 #        didn't i used to do that somewhere...?
-
+#
+#        actually, i don't want it added to the sqsh image
+#        filename... but we could stick it somewhere.
+#
 AC_INIT([Source Ruckus Resolute System Builder], [sr_version], [veggiemike@sourceruckus.org], [sourceruckus-resolute])
 AC_CONFIG_AUX_DIR([.])
 #AC_CONFIG_MACRO_DIR([m4])
@@ -131,9 +134,10 @@ FW_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/fw.sqsh))
 #       you want to override the system's initrd you can just add it
 #       to KERNEL_FILES last.
 #
-# FIXME: this is sorted with LANG=C which isn't what I was
-#        expecting... I guess that's normal, though, and I should have
-#        expected it
+# NOTE: This is sorted with LANG=C which isn't what I was initially
+#        expecting. That is normal autoconf behavior, to ensure
+#        consistent behavior, so I guess I'll start expecting that.
+#        ;-)
 #
 BOOTKERNEL=$(basename $(echo $KERNEL_FILES | tr ' ' '\n' | grep vmlinuz | tr '\n' ' ' | awk '{print $NF}'))
 BOOTINITRD=$(basename $(echo $KERNEL_FILES | tr ' ' '\n' | grep initrd | tr '\n' ' ' | awk '{print $NF}'))
