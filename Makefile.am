@@ -221,6 +221,28 @@ sysroot/etc/apt/sources.list.d/linbit-drbd9.list:
 	rm sysroot/tmp/keybox.gpg
 	echo "deb [signed-by=/etc/apt/keyrings/linbit.gpg] http://ppa.launchpad.net/linbit/linbit-drbd9-stack/ubuntu resolute main" > $@
 
+# FIXME: this failed when i restarted a build after Workstation
+#        failure... i can chroot into sysroot and do the gpg
+#        --recv-keys command fine though...  network fluke?
+#
+#        not a fluke, cleaned and ran again with same results...
+#
+#        i can chroot into a bash shell and run it fine, but if i run
+#        the whole command via chroot, it hangs for 10 seconds or sa
+#        and then fails with "gpg: keyserver receive failed: Server
+#        indicated a failure".  This is the same command used for the
+#        linbit ppa... so it's not like the syntax has changed...
+#
+#        maybe related, when I chroot /bin/bash I get this error 3
+#        times "Failed to create stream fd: No such file or directory"
+#        and then things work as expected.
+#
+#        woah, it just worked with absolute path to gpg...? and now it
+#        works with relative path...?  is it a timeout thing...?
+#
+#        super strange...  after another sysroot-clean, it built all
+#        the way through w/out any problems... no idea... :-/
+#
 sysroot/etc/apt/sources.list.d/openshot.list:
 	$(MAKE) sysroot-mount-vfs
 	$(MKDIR_P) --mode=700 sysroot/root/.gnupg
@@ -638,8 +660,7 @@ PKGS_ES += emacs-nox emacs-common-non-dfsg
 PKGS_ES += aspell aspell-en
 PKGS_ES += autofs nfs-common
 PKGS_ES += ftp ncftp
-# FIXME: is this wireguard comment still relevant?
-PKGS_ES += wireguard-tools #(--no-install-recommends to avoid grub junk - or apt-mark hold wireguard-dkms wireguard-modules)
+PKGS_ES += wireguard-tools
 PKGS_ES += logwatch libdate-manip-perl
 PKGS_ES += rsync
 PKGS_ES += info
@@ -836,6 +857,26 @@ PKGS_ESFILE += minidlna libaacs0 libgdk-pixbuf2.0-bin pocketsphinx-en-us librsvg
 
 
 # prepare an overlay mount on sysroot
+#
+# FIXME: crap, upper_layer can't be ZFS?
+#
+#        overlay: filesystem on upper_layer/upper not supported as upperdir
+#
+#        google says Ubuntu 24.04 w/ ZFS 2.2+ will work...  feanor is
+#        24.04 w/ ZFS 2.4.3 (kernel, userland is 2.3.2).  it's running
+#        my 6.18 kernel, so the overlayfs version is whatever was in
+#        6.18.  Ubuntu 24.04 shipped with 6.8 originally, HWE stack
+#        gave it 6.11, 6.17, and 7.0.  Harumpf
+#
+#        worked fine on my ZFS resolutedev vm... what gives?
+#
+#        ooooooh, wait...  on feanor, this is in /scrap , which is
+#        rootfs which IS overlay.  I bet if move it to home (or make
+#        /scrap an additional dataset) this problem will go away...
+#
+#        yes, it did...  I'm leaving this FIXME in here for next
+#        time... I'm pretty sure this has bitten me before.
+#
 .build/RUCKUS-ESFILE-OVL:
 	$(MAKE) sysroot-clean
 	$(MAKE) sqsh_layer-es upper_layer

@@ -117,7 +117,7 @@ AC_SUBST(IMG_LIST, $img_list)
 # FIXME: these should have sane defaults, but i'm setting them to my
 #        specific system during development.
 #
-KERNEL_FILES=$(echo $(realpath /scrap/bootfiles/*6.18.y*))
+KERNEL_FILES=$(echo $(realpath /boot/*6.18.y*) | sort)
 SYSLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/efi64/*))
 ISOLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/{isolinux.bin,{ldlinux,libcom32,libmenu,libutil,menu,vesamenu,chain}.c32}))
 EXTLINUX_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/syslinux/FOO/usr/share/syslinux/*.c32))
@@ -130,6 +130,10 @@ FW_FILES=$(echo $(realpath /scrap/ruckusrd/subprojects/fw.sqsh))
 #       file, in case there are duplicates.  The thinking being, if
 #       you want to override the system's initrd you can just add it
 #       to KERNEL_FILES last.
+#
+# FIXME: this is sorted with LANG=C which isn't what I was
+#        expecting... I guess that's normal, though, and I should have
+#        expected it
 #
 BOOTKERNEL=$(basename $(echo $KERNEL_FILES | tr ' ' '\n' | grep vmlinuz | tr '\n' ' ' | awk '{print $NF}'))
 BOOTINITRD=$(basename $(echo $KERNEL_FILES | tr ' ' '\n' | grep initrd | tr '\n' ' ' | awk '{print $NF}'))
@@ -162,14 +166,14 @@ echo
 echo "Enabled Sqsh Images:"
 echo "  $img_list"
 echo
-#echo "Kernel Files: $KERNEL_FILES"
+echo "Kernel Files: $KERNEL_FILES"
 #echo "SYSLINUX Files: $SYSLINUX_FILES"
 #echo "EXTLINUX Files: $EXTLINUX_FILES"
 #echo "gptmbr.bin: $EXTLINUX_GPTMBR"
 #echo "extlinux: $EXTLINUX"
 #echo "ISOLINUX Files: $ISOLINUX_FILES"
-#echo "isohybrid: $ISOHYBRID"
-#echo "Firmware Files: $FW_FILES"
-#echo "BOOTKERNEL: $BOOTKERNEL"
-#echo "BOOTINITRD: $BOOTINITRD"
-#echo
+echo "isohybrid: $ISOHYBRID"
+echo "Firmware Files: $FW_FILES"
+echo "BOOTKERNEL: $BOOTKERNEL"
+echo "BOOTINITRD: $BOOTINITRD"
+echo
