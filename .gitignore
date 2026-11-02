@@ -6,6 +6,7 @@
 /sqsh_layer-es
 /sqsh_layer-server
 /sqsh_layer-vmm
+/sqsh_layer-workstation
 /upper_layer
 /iso
 
@@ -28,6 +29,7 @@ Makefile.in
 /test-driver
 
 # built sqsh files
+/desktop.sqsh
 /es-auth.sqsh
 /es-devel.sqsh
 /es-file.sqsh
